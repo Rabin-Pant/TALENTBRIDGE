@@ -1,0 +1,181 @@
+// TalentBridge — Prisma Schema
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum Role {
+  SEEKER
+  EMPLOYER
+  ADMIN
+}
+
+enum ExperienceLevel {
+  ENTRY
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+  EXECUTIVE
+}
+
+enum CompanySize {
+  STARTUP      // 1–10
+  SMALL        // 11–50
+  MEDIUM       // 51–200
+  LARGE        // 201–1000
+  ENTERPRISE   // 1000+
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  FREELANCE
+  INTERNSHIP
+  REMOTE
+}
+
+enum JobStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWING
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+}
+
+enum NotificationType {
+  APPLICATION       // employer gets this when someone applies
+  STATUS_UPDATE     // seeker gets this when status changes
+  JOB_MATCH         // seeker gets this for relevant jobs
+  SYSTEM            // admin broadcasts
+}
+
+// ─────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  fullName  String
+  role      Role     @default(SEEKER)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  lastLogin DateTime?
+
+  // Seeker-only fields
+  currentTitle    String?
+  bio             String?
+  location        String?
+  phone           String?
+  experienceLevel ExperienceLevel?
+  skills          String[]         @default([])
+  resumeFileName  String?
+
+  // Employer-only fields
+  companyName        String?
+  companyWebsite     String?
+  companySize        CompanySize?
+  industry           String?
+  companyDescription String?
+
+  // Relations
+  postedJobs        Job[]           @relation("EmployerJobs")
+  applications      Application[]   @relation("SeekerApplications")
+  notifications     Notification[]  @relation("UserNotifications")
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────
+// JOB
+// ─────────────────────────────────────────
+
+model Job {
+  id              String          @id @default(uuid())
+  title           String
+  description     String
+  company         String
+  location        String
+  jobType         JobType
+  experienceLevel ExperienceLevel
+  industry        String
+  salaryMin       Int?
+  salaryMax       Int?
+  requirements    String[]        @default([])
+  benefits        String[]        @default([])
+  skills          String[]        @default([])
+  status          JobStatus       @default(ACTIVE)
+  postedAt        DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  employerId   String
+  employer     User          @relation("EmployerJobs", fields: [employerId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@map("jobs")
+}
+
+// ─────────────────────────────────────────
+// APPLICATION
+// ─────────────────────────────────────────
+
+model Application {
+  id             String            @id @default(uuid())
+  status         ApplicationStatus @default(PENDING)
+  coverLetter    String?
+  resumeSnapshot String?           // copy of resume filename at time of apply
+  employerNote   String?
+  appliedAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  // Relations
+  jobId       String
+  job         Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  applicantId String
+  applicant   User   @relation("SeekerApplications", fields: [applicantId], references: [id], onDelete: Cascade)
+
+  // Prevent duplicate applications
+  @@unique([jobId, applicantId])
+  @@map("applications")
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATION
+// ─────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  title     String
+  message   String
+  type      NotificationType
+  link      String?          // e.g. /seeker/applications/123
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  recipientId String
+  recipient   User   @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
