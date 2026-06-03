@@ -110,23 +110,24 @@ const SeekerProfile = () => {
     }
   };
 
-  const handleResumeUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("resume", file);
-    try {
-      setUploading(true);
-      await api.post("/seeker/resume", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      showToast("Resume uploaded successfully!");
-    } catch {
-      showToast("Failed to upload resume", "error");
-    } finally {
-      setUploading(false);
-    }
-  };
+ const handleResumeUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("resume", file);
+  try {
+    setUploading(true);
+    const res = await api.post("/seeker/resume", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    setProfileData((prev) => ({ ...prev, resumeFileName: res.data.filename }));
+    showToast("Resume uploaded successfully!");
+  } catch {
+    showToast("Failed to upload resume", "error");
+  } finally {
+    setUploading(false);
+  }
+};
 
   const TABS = [
     { id: "basic",      label: "Basic Info",   icon: User         },
@@ -513,34 +514,54 @@ const SeekerProfile = () => {
 
             {/* ── RESUME TAB ── */}
             {activeTab === "resume" && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h2 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <FileText size={18} className="text-blue-500" /> Resume
-                </h2>
-                <p className="text-xs text-gray-400 mb-6">PDF or DOC, max 10MB</p>
+  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <h2 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+      <FileText size={18} className="text-blue-500" /> Resume
+    </h2>
+    <p className="text-xs text-gray-400 mb-6">PDF or DOC, max 10MB</p>
 
-                {profileData?.resumeFileName && (
-                  <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl mb-4">
-                    <CheckCircle size={18} className="text-green-500" />
-                    <div>
-                      <p className="text-sm font-medium text-green-700">Resume uploaded</p>
-                      <p className="text-xs text-green-600 mt-0.5">{profileData.resumeFileName}</p>
-                    </div>
-                  </div>
-                )}
+    {profileData?.resumeFileName ? (
+      <div className="mb-4 space-y-3">
+        {/* Current Resume */}
+        <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+              <FileText size={18} className="text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-green-700">Current Resume</p>
+              <p className="text-xs text-green-600 mt-0.5">{profileData.resumeFileName}</p>
+            </div>
+          </div>
+          
+           <a href={`http://localhost:5000/uploads/${profileData.resumeFileName}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors">
+  <CheckCircle size={13} /> View Resume
+</a>
+        </div>
+        <p className="text-xs text-gray-400 text-center">Upload a new file to replace current resume</p>
+      </div>
+    ) : (
+      <div className="mb-4 flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        <FileText size={18} className="text-amber-500" />
+        <div>
+          <p className="text-sm font-medium text-amber-700">No resume uploaded yet</p>
+          <p className="text-xs text-amber-600 mt-0.5">Upload your resume to apply for jobs faster</p>
+        </div>
+      </div>
+    )}
 
-                <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 rounded-2xl p-10 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                  <Upload size={28} className="text-gray-400" />
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-gray-600">
-                      {uploading ? "Uploading..." : "Click to upload resume"}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX up to 10MB</p>
-                  </div>
-                  <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" />
-                </label>
-              </div>
-            )}
+    <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 rounded-2xl p-8 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+      <Upload size={28} className="text-gray-400" />
+      <div className="text-center">
+        <p className="text-sm font-medium text-gray-600">
+          {uploading ? "Uploading..." : profileData?.resumeFileName ? "Upload new resume" : "Click to upload resume"}
+        </p>
+        <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX up to 10MB</p>
+      </div>
+      <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" />
+    </label>
+  </div>
+)}
 
             {/* Save Button */}
             {activeTab !== "resume" && (

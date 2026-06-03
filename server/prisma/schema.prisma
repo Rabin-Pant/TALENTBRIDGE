@@ -90,13 +90,19 @@ model User {
   experienceLevel ExperienceLevel?
   skills          String[]         @default([])
   resumeFileName  String?
+  education       Json?
+  workExperience  Json?
 
-  // Employer-only fields
+ // Employer-only fields
   companyName        String?
   companyWebsite     String?
   companySize        CompanySize?
   industry           String?
   companyDescription String?
+  companyAddress     String?
+  companyPhone       String?
+  companyRegNumber   String?
+  companyDocument    String?
 
   // Relations
   postedJobs        Job[]           @relation("EmployerJobs")

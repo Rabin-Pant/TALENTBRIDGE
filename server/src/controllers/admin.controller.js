@@ -37,7 +37,6 @@ export const getDashboard = async (req, res) => {
 export const getUsers = async (req, res) => {
   try {
     const { role } = req.query;
-
     const filters = {};
     if (role) filters.role = role;
 
@@ -45,15 +44,16 @@ export const getUsers = async (req, res) => {
       where: filters,
       orderBy: { createdAt: "desc" },
       select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        active: true,
-        approved: true,
-        companyName: true,
-        createdAt: true,
-        lastLogin: true,
+        id: true, email: true, fullName: true,
+        role: true, active: true, approved: true,
+        phone: true, location: true, bio: true,
+        currentTitle: true, experienceLevel: true,
+        skills: true, resumeFileName: true,
+        companyName: true, companyWebsite: true,
+        companySize: true, industry: true,
+        companyDescription: true, companyAddress: true,
+        companyPhone: true, companyRegNumber: true,
+        companyDocument: true, createdAt: true, lastLogin: true,
       },
     });
 

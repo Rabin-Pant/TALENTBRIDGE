@@ -192,6 +192,8 @@ export const getProfile = async (req, res) => {
         experienceLevel: true,
         skills: true,
         resumeFileName: true,
+        education: true,
+        workExperience: true,
       },
     });
 
@@ -206,34 +208,57 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const {
-      fullName, currentTitle, bio, location,
-      experienceLevel, skills, education, workExperience
+      fullName,
+      currentTitle,
+      bio,
+      location,
+      experienceLevel,
+      skills,
+      education,
+      workExperience,
     } = req.body;
+
+    // Build update data carefully
+    const updateData = {};
+
+    if (fullName !== undefined)       updateData.fullName       = fullName;
+    if (currentTitle !== undefined)   updateData.currentTitle   = currentTitle;
+    if (bio !== undefined)            updateData.bio            = bio;
+    if (location !== undefined)       updateData.location       = location;
+    if (experienceLevel !== undefined && experienceLevel !== "") {
+      updateData.experienceLevel = experienceLevel;
+    }
+    if (skills !== undefined) {
+      updateData.skills = typeof skills === "string"
+        ? skills.split(",").map((s) => s.trim()).filter(Boolean)
+        : skills;
+    }
+    if (education !== undefined)      updateData.education      = education;
+    if (workExperience !== undefined) updateData.workExperience = workExperience;
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: {
-        fullName,
-        currentTitle,
-        bio,
-        location,
-        experienceLevel,
-        skills: skills ? skills.split(",").map((s) => s.trim()) : undefined,
-        education: education || undefined,
-        workExperience: workExperience || undefined,
-      },
+      data: updateData,
       select: {
-        id: true, email: true, fullName: true,
-        currentTitle: true, bio: true, location: true,
-        phone: true, experienceLevel: true, skills: true,
-        resumeFileName: true, education: true, workExperience: true,
+        id: true,
+        email: true,
+        fullName: true,
+        currentTitle: true,
+        bio: true,
+        location: true,
+        phone: true,
+        experienceLevel: true,
+        skills: true,
+        resumeFileName: true,
+        education: true,
+        workExperience: true,
       },
     });
 
     res.json({ message: "Profile updated", user });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Update profile error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 

@@ -73,14 +73,19 @@ const StatusBadge = ({ status }) => {
 const SeekerDashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
+  const [profileStats, setProfileStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get("/seeker/dashboard");
-        setData(res.data);
+        const [dashRes, profileRes] = await Promise.all([
+          api.get("/seeker/dashboard"),
+          api.get("/seeker/profile"),
+        ]);
+        setData(dashRes.data);
+        setProfileStats(profileRes.data.user);
       } catch (err) {
         console.error(err);
       } finally {
@@ -88,7 +93,7 @@ const SeekerDashboard = () => {
         setTimeout(() => setVisible(true), 100);
       }
     };
-    fetch();
+    fetchData();
   }, []);
 
   if (loading) return (
@@ -102,6 +107,15 @@ const SeekerDashboard = () => {
       </div>
     </div>
   );
+
+  const profileItems = [
+    { label: "Basic Info",      done: !!profileStats?.fullName          },
+    { label: "Bio Added",       done: !!profileStats?.bio               },
+    { label: "Skills Set",      done: (profileStats?.skills?.length || 0) > 0 },
+    { label: "Resume Uploaded", done: !!profileStats?.resumeFileName    },
+  ];
+  const completedCount = profileItems.filter((p) => p.done).length;
+  const completionPct  = completedCount * 25;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -126,9 +140,9 @@ const SeekerDashboard = () => {
           {/* Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatCard label="Total Applied"  value={data?.totalApplications || 0} icon={Briefcase}   color="blue"   delay={0}   />
-            <StatCard label="Pending"         value={data?.pending || 0}           icon={Clock}       color="amber"  delay={100} />
-            <StatCard label="Shortlisted"     value={data?.shortlisted || 0}       icon={TrendingUp}  color="purple" delay={200} />
-            <StatCard label="Accepted"        value={data?.accepted || 0}          icon={CheckCircle} color="green"  delay={300} />
+            <StatCard label="Pending"        value={data?.pending || 0}           icon={Clock}       color="amber"  delay={100} />
+            <StatCard label="Shortlisted"    value={data?.shortlisted || 0}       icon={TrendingUp}  color="purple" delay={200} />
+            <StatCard label="Accepted"       value={data?.accepted || 0}          icon={CheckCircle} color="green"  delay={300} />
           </div>
 
           {/* Two column layout */}
@@ -144,7 +158,7 @@ const SeekerDashboard = () => {
               </div>
 
               <div className="divide-y divide-gray-50">
-                {data?.recentApplications?.length === 0 ? (
+                {!data?.recentApplications || data.recentApplications.length === 0 ? (
                   <div className="p-8 text-center">
                     <FileText size={32} className="text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-400 text-sm">No applications yet</p>
@@ -153,7 +167,7 @@ const SeekerDashboard = () => {
                     </Link>
                   </div>
                 ) : (
-                  data?.recentApplications?.map((app, i) => (
+                  data.recentApplications.map((app, i) => (
                     <div
                       key={app.id}
                       className="p-4 hover:bg-gray-50 transition-colors"
@@ -184,8 +198,9 @@ const SeekerDashboard = () => {
               </div>
             </div>
 
-            {/* Quick Actions */}
+            {/* Right Column */}
             <div className="space-y-4">
+              {/* Find Jobs CTA */}
               <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg shadow-blue-200">
                 <Briefcase size={28} className="mb-3 opacity-90" />
                 <h3 className="font-semibold text-lg">Find Jobs</h3>
@@ -198,17 +213,13 @@ const SeekerDashboard = () => {
                 </Link>
               </div>
 
+              {/* Profile Strength */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                 <h3 className="font-semibold text-gray-900 mb-4">Profile Strength</h3>
                 <div className="space-y-2">
-                  {[
-                    { label: "Basic Info",  done: !!user?.fullName },
-                    { label: "Bio Added",   done: !!user?.bio },
-                    { label: "Skills Set",  done: user?.skills?.length > 0 },
-                    { label: "Resume Uploaded", done: !!user?.resumeFileName },
-                  ].map(({ label, done }) => (
+                  {profileItems.map(({ label, done }) => (
                     <div key={label} className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center ${done ? "bg-green-500" : "bg-gray-200"}`}>
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${done ? "bg-green-500" : "bg-gray-200"}`}>
                         {done && <CheckCircle size={10} className="text-white" />}
                       </div>
                       <span className={`text-sm ${done ? "text-gray-700" : "text-gray-400"}`}>{label}</span>
@@ -218,15 +229,20 @@ const SeekerDashboard = () => {
                 <div className="mt-4">
                   <div className="flex justify-between text-xs text-gray-500 mb-1">
                     <span>Completion</span>
-                    <span>{[!!user?.fullName, !!user?.bio, user?.skills?.length > 0, !!user?.resumeFileName].filter(Boolean).length * 25}%</span>
+                    <span>{completionPct}%</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000"
-                      style={{ width: `${[!!user?.fullName, !!user?.bio, user?.skills?.length > 0, !!user?.resumeFileName].filter(Boolean).length * 25}%` }}
+                      style={{ width: `${completionPct}%` }}
                     />
                   </div>
                 </div>
+                {completionPct < 100 && (
+                  <Link to="/seeker/profile" className="mt-3 block text-xs text-center text-blue-600 hover:underline">
+                    Complete your profile →
+                  </Link>
+                )}
               </div>
             </div>
           </div>

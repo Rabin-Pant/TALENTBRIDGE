@@ -170,18 +170,20 @@ export const getApplicationById = async (req, res) => {
       include: {
         job: { select: { title: true, employerId: true } },
         applicant: {
-          select: {
-            fullName: true,
-            email: true,
-            currentTitle: true,
-            bio: true,
-            location: true,
-            phone: true,
-            skills: true,
-            experienceLevel: true,
-            resumeFileName: true,
-          },
-        },
+  select: {
+    fullName: true,
+    email: true,
+    currentTitle: true,
+    bio: true,
+    location: true,
+    phone: true,
+    skills: true,
+    experienceLevel: true,
+    resumeFileName: true,
+    education: true,
+    workExperience: true,
+  },
+},
       },
     });
 

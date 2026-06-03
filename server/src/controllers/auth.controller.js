@@ -13,7 +13,13 @@ const generateToken = (user) => {
 // ─── REGISTER ───────────────────────────────────────
 export const register = async (req, res) => {
   try {
-    const { email, password, fullName, role, companyName } = req.body;
+    const {
+  email, password, fullName, role,
+  phone, location, currentTitle, experienceLevel,
+  companyName, companyWebsite, companySize, industry,
+  companyDescription, companyRegNumber, companyAddress,
+  companyPhone, companyDocument,
+} = req.body;
 
     // Validate role
     const validRoles = ["SEEKER", "EMPLOYER"];
@@ -32,41 +38,53 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "Company name is required for employers" });
     }
 
-    // If employer, return pending message
-if (role === "EMPLOYER") {
-  return res.status(201).json({
-    message: "Registration successful! Your account is pending admin approval.",
-    pending: true,
-  });
-}
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
-   const user = await prisma.user.create({
+    const user = await prisma.user.create({
   data: {
     email,
     password: hashedPassword,
     fullName,
     role,
+    approved: role === "SEEKER" ? true : false,
+    phone: phone || null,
+    location: location || null,
+    currentTitle: currentTitle || null,
+    experienceLevel: experienceLevel || null,
     companyName: role === "EMPLOYER" ? companyName : null,
-    approved: role === "EMPLOYER" ? false : true,
+    companyWebsite: companyWebsite || null,
+    companySize: companySize || null,
+    industry: industry || null,
+    companyDescription: companyDescription || null,
+    companyRegNumber: companyRegNumber || null,
+    companyAddress: companyAddress || null,
+    companyPhone: companyPhone || null,
+    companyDocument: companyDocument || null,
   },
 });
+    // Employer — return pending approval (no token)
+    if (role === "EMPLOYER") {
+      return res.status(201).json({
+        message: "Registration successful! Your account is pending admin approval.",
+        pendingApproval: true,
+      });
+    }
 
-const token = generateToken(user);
-res.status(201).json({
-  message: "Registration successful",
-  token,
-  user: {
-    id: user.id,
-    email: user.email,
-    fullName: user.fullName,
-    role: user.role,
-    companyName: user.companyName,
-  },
-});
+    // Seeker — return token immediately
+    const token = generateToken(user);
+    res.status(201).json({
+      message: "Registration successful",
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        companyName: user.companyName,
+      },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
