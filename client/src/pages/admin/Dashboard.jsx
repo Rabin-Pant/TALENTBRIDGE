@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
+import { Link } from "react-router-dom";
 
 const StatCard = ({ label, value, icon: Icon, color, delay }) => {
   const [count, setCount] = useState(0);
@@ -104,45 +105,24 @@ const AdminDashboard = () => {
             <StatCard label="Accepted"           value={data?.acceptedApplications || 0}icon={CheckCircle} color="green"  delay={500} />
           </div>
 
-          {/* Summary Cards */}
-          <div className="grid md:grid-cols-3 gap-4">
-            {[
-              {
-                title: "User Management",
-                desc: "View, enable, disable or delete user accounts",
-                to: "/admin/users",
-                color: "from-blue-600 to-blue-700",
-                shadow: "shadow-blue-200",
-                icon: Users,
-              },
-              {
-                title: "Job Listings",
-                desc: "Monitor and manage all job postings platform-wide",
-                to: "/admin/jobs",
-                color: "from-green-600 to-teal-600",
-                shadow: "shadow-green-200",
-                icon: Briefcase,
-              },
-              {
-                title: "Applications",
-                desc: "View all applications across the platform",
-                to: "/admin/applications",
-                color: "from-purple-600 to-purple-700",
-                shadow: "shadow-purple-200",
-                icon: FileText,
-              },
-            ].map(({ title, desc, to, color, shadow, icon: Icon }) => (
-              
-                key={to}
-                href={to}
-                className={`bg-gradient-to-br ${color} rounded-2xl p-6 text-white shadow-lg ${shadow} hover:-translate-y-1 transition-all duration-300`}
-              >
-                <Icon size={28} className="mb-3 opacity-90" />
-                <h3 className="font-semibold text-lg">{title}</h3>
-                <p className="text-white/70 text-sm mt-1">{desc}</p>
-              </a>
-            ))}
-          </div>
+{/* Summary Cards */}
+<div className="grid md:grid-cols-3 gap-4">
+  <Link to="/admin/users" className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg shadow-blue-200 hover:-translate-y-1 transition-all duration-300">
+    <Users size={28} className="mb-3 opacity-90" />
+    <h3 className="font-semibold text-lg">User Management</h3>
+    <p className="text-white/70 text-sm mt-1">View, enable, disable or delete user accounts</p>
+  </Link>
+  <Link to="/admin/jobs" className="bg-gradient-to-br from-green-600 to-teal-600 rounded-2xl p-6 text-white shadow-lg shadow-green-200 hover:-translate-y-1 transition-all duration-300">
+    <Briefcase size={28} className="mb-3 opacity-90" />
+    <h3 className="font-semibold text-lg">Job Listings</h3>
+    <p className="text-white/70 text-sm mt-1">Monitor and manage all job postings platform-wide</p>
+  </Link>
+  <Link to="/admin/applications" className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl p-6 text-white shadow-lg shadow-purple-200 hover:-translate-y-1 transition-all duration-300">
+    <FileText size={28} className="mb-3 opacity-90" />
+    <h3 className="font-semibold text-lg">Applications</h3>
+    <p className="text-white/70 text-sm mt-1">View all applications across the platform</p>
+  </Link>
+</div>
         </div>
       </main>
     </div>

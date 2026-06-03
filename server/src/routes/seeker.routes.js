@@ -10,6 +10,7 @@ import {
   getMyApplications,
   getProfile,
   updateProfile,
+  updateContact,
   uploadResume,
   getNotifications,
 } from "../controllers/seeker.controller.js";
@@ -17,7 +18,7 @@ import {
 const router = express.Router();
 
 router.use(authMiddleware, roleMiddleware("SEEKER"));
-
+router.put("/contact", updateContact);
 router.get("/dashboard", getDashboard);
 router.get("/jobs", getJobs);
 router.get("/jobs/:id", getJobById);

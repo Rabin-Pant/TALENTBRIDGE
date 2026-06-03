@@ -205,7 +205,10 @@ export const getProfile = async (req, res) => {
 // ─── UPDATE PROFILE ──────────────────────────────────
 export const updateProfile = async (req, res) => {
   try {
-    const { fullName, currentTitle, bio, location, phone, experienceLevel, skills } = req.body;
+    const {
+      fullName, currentTitle, bio, location,
+      experienceLevel, skills, education, workExperience
+    } = req.body;
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
@@ -214,21 +217,16 @@ export const updateProfile = async (req, res) => {
         currentTitle,
         bio,
         location,
-        phone,
         experienceLevel,
         skills: skills ? skills.split(",").map((s) => s.trim()) : undefined,
+        education: education || undefined,
+        workExperience: workExperience || undefined,
       },
       select: {
-        id: true,
-        email: true,
-        fullName: true,
-        currentTitle: true,
-        bio: true,
-        location: true,
-        phone: true,
-        experienceLevel: true,
-        skills: true,
-        resumeFileName: true,
+        id: true, email: true, fullName: true,
+        currentTitle: true, bio: true, location: true,
+        phone: true, experienceLevel: true, skills: true,
+        resumeFileName: true, education: true, workExperience: true,
       },
     });
 
@@ -275,6 +273,21 @@ export const getNotifications = async (req, res) => {
     });
 
     res.json({ notifications, unreadCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updateContact = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { phone },
+      select: { id: true, phone: true },
+    });
+    res.json({ message: "Contact updated", user });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
