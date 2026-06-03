@@ -168,14 +168,10 @@ const ApplicantDetail = () => {
                     <FileText size={16} className="text-blue-500" /> Resume
                   </h2>
                   
-                    href={`http://localhost:5000/uploads/${applicant.resumeFileName}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-green-400 hover:bg-green-50 transition-colors"
-                  >
-                    <FileText size={20} className="text-green-500" />
-                    <span className="text-sm font-medium text-gray-700">{applicant.resumeFileName}</span>
-                  </a>
+                    <a href={`http://localhost:5000/uploads/${applicant.resumeFileName}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-green-400 hover:bg-green-50 transition-colors">
+  <FileText size={20} className="text-green-500" />
+  <span className="text-sm font-medium text-gray-700">{applicant.resumeFileName}</span>
+</a>
                 </div>
               )}
             </div>
