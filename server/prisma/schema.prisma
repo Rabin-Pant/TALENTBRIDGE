@@ -78,6 +78,7 @@ model User {
   fullName  String
   role      Role     @default(SEEKER)
   active    Boolean  @default(true)
+  approved    Boolean  @default(false)
   createdAt DateTime @default(now())
   lastLogin DateTime?
 

@@ -50,6 +50,7 @@ export const getUsers = async (req, res) => {
         fullName: true,
         role: true,
         active: true,
+        approved: true,
         companyName: true,
         createdAt: true,
         lastLogin: true,
@@ -183,6 +184,36 @@ export const sendNotification = async (req, res) => {
     });
 
     res.status(201).json({ message: "Notification sent", notification });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── APPROVE EMPLOYER ────────────────────────────────
+export const approveEmployer = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.role !== "EMPLOYER") return res.status(400).json({ message: "User is not an employer" });
+
+    const updated = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { approved: true },
+    });
+
+    // Notify employer
+    await prisma.notification.create({
+      data: {
+        recipientId: user.id,
+        title: "Account Approved!",
+        message: "Your employer account has been approved. You can now post jobs and hire talent.",
+        type: "SYSTEM",
+        link: "/employer/dashboard",
+      },
+    });
+
+    res.json({ message: "Employer approved successfully", user: updated });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

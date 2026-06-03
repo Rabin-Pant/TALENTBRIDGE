@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Users, Search, Trash2, ToggleLeft,
-  ToggleRight, Sparkles, Shield, User, Building2
+  ToggleRight, Sparkles, Shield, User, Building2, CheckCircle
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -175,22 +175,50 @@ const AdminUsers = () => {
                       style={{ animationDelay: `${i * 40}ms` }}
                     >
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                            u.role === "ADMIN" ? "bg-red-100" : u.role === "EMPLOYER" ? "bg-green-100" : "bg-blue-100"
-                          }`}>
-                            <span className={`font-bold text-sm ${
-                              u.role === "ADMIN" ? "text-red-600" : u.role === "EMPLOYER" ? "text-green-600" : "text-blue-600"
-                            }`}>
-                              {u.fullName?.charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 text-sm">{u.fullName}</p>
-                            <p className="text-gray-400 text-xs">{u.email}</p>
-                          </div>
-                        </div>
-                      </td>
+  <div className="flex items-center justify-end gap-2">
+    {u.role === "EMPLOYER" && !u.approved && (
+      <button
+        onClick={async () => {
+          try {
+            await api.put(`/admin/users/${u.id}/approve`);
+            setUsers(users.map((usr) =>
+              usr.id === u.id ? { ...usr, approved: true } : usr
+            ));
+            showToast("Employer approved!");
+          } catch {
+            showToast("Failed to approve", "error");
+          }
+        }}
+        className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors"
+      >
+        <CheckCircle size={13} /> Approve
+      </button>
+    )}
+    {u.role === "EMPLOYER" && u.approved && (
+      <span className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium">
+        <CheckCircle size={13} /> Approved
+      </span>
+    )}
+    <button
+      onClick={() => handleToggle(u.id)}
+      disabled={togglingId === u.id}
+      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+      title={u.active ? "Disable user" : "Enable user"}
+    >
+      {u.active
+        ? <ToggleRight size={20} className="text-green-500" />
+        : <ToggleLeft size={20} className="text-gray-400" />
+      }
+    </button>
+    <button
+      onClick={() => handleDelete(u.id)}
+      disabled={deletingId === u.id}
+      className="p-1.5 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+    >
+      <Trash2 size={16} className="text-red-400" />
+    </button>
+  </div>
+</td>
                       <td className="px-6 py-4">
                         <RoleBadge role={u.role} />
                       </td>

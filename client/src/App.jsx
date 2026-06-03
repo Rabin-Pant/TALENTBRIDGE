@@ -28,6 +28,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import AdminJobs from "./pages/admin/Jobs";
 import AdminApplications from "./pages/admin/Applications";
+import PendingApproval from "./pages/auth/PendingApproval";
 
 const RoleRedirect = () => {
   const { user } = useAuth();
@@ -69,6 +70,7 @@ const App = () => {
       <Route path="/admin/users" element={<ProtectedRoute role="ADMIN"><AdminUsers /></ProtectedRoute>} />
       <Route path="/admin/jobs" element={<ProtectedRoute role="ADMIN"><AdminJobs /></ProtectedRoute>} />
       <Route path="/admin/applications" element={<ProtectedRoute role="ADMIN"><AdminApplications /></ProtectedRoute>} />
+      <Route path="/pending-approval" element={<PendingApproval />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

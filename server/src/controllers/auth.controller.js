@@ -32,33 +32,41 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "Company name is required for employers" });
     }
 
+    // If employer, return pending message
+if (role === "EMPLOYER") {
+  return res.status(201).json({
+    message: "Registration successful! Your account is pending admin approval.",
+    pending: true,
+  });
+}
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        fullName,
-        role,
-        companyName: role === "EMPLOYER" ? companyName : null,
-      },
-    });
+   const user = await prisma.user.create({
+  data: {
+    email,
+    password: hashedPassword,
+    fullName,
+    role,
+    companyName: role === "EMPLOYER" ? companyName : null,
+    approved: role === "EMPLOYER" ? false : true,
+  },
+});
 
-    const token = generateToken(user);
-
-    res.status(201).json({
-      message: "Registration successful",
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        companyName: user.companyName,
-      },
-    });
+const token = generateToken(user);
+res.status(201).json({
+  message: "Registration successful",
+  token,
+  user: {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    role: user.role,
+    companyName: user.companyName,
+  },
+});
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -78,8 +86,13 @@ export const login = async (req, res) => {
 
     // Check if account is active
     if (!user.active) {
-      return res.status(403).json({ message: "Your account has been disabled" });
-    }
+  return res.status(403).json({ message: "Your account has been disabled" });
+}
+
+// Check employer approval
+if (user.role === "EMPLOYER" && !user.approved) {
+  return res.status(403).json({ message: "Your employer account is pending admin approval. You will be notified once approved." });
+}
 
     // Compare password
     const isMatch = await bcrypt.compare(password, user.password);

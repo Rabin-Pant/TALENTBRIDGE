@@ -64,32 +64,39 @@ const Register = () => {
   };
 
   const onSubmit = async (data) => {
-    try {
-      setLoading(true);
-      setError("");
-      const payload = {
-        email: data.email,
-        password: data.password,
-        fullName: data.fullName,
-        role: selectedRole,
-        ...(selectedRole === "EMPLOYER" && { companyName: data.companyName }),
-        ...(selectedRole === "SEEKER" && {
-          phone: data.phone,
-          location: data.location,
-          currentTitle: data.currentTitle,
-          experienceLevel: data.experienceLevel,
-        }),
-      };
-      const res = await api.post("/auth/register", payload);
-      login(res.data.user, res.data.token);
-      navigate(selectedRole === "SEEKER" ? "/seeker/dashboard" : "/employer/dashboard");
-    } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
-      setStep(1);
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    setError("");
+    const payload = {
+      email: data.email,
+      password: data.password,
+      fullName: data.fullName,
+      role: selectedRole,
+      ...(selectedRole === "EMPLOYER" && { companyName: data.companyName }),
+      ...(selectedRole === "SEEKER" && {
+        phone: data.phone,
+        location: data.location,
+        currentTitle: data.currentTitle,
+        experienceLevel: data.experienceLevel,
+      }),
+    };
+    const res = await api.post("/auth/register", payload);
+
+    // Employer pending approval
+    if (res.data.pending) {
+      navigate("/pending-approval");
+      return;
     }
-  };
+
+    login(res.data.user, res.data.token);
+    navigate(selectedRole === "SEEKER" ? "/seeker/dashboard" : "/employer/dashboard");
+  } catch (err) {
+    setError(err.response?.data?.message || "Registration failed");
+    setStep(1);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
