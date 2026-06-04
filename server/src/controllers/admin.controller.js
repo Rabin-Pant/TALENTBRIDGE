@@ -20,6 +20,12 @@ const validatePagination = (page, limit) => {
 // ─── DASHBOARD ───────────────────────────────────────
 export const getDashboard = async (req, res) => {
   try {
+    // Get date from 30 days ago
+    const now = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(now.getDate() - 30);
+    
+    // Run all queries in parallel
     const [
       totalUsers,
       totalSeekers,
@@ -27,15 +33,41 @@ export const getDashboard = async (req, res) => {
       activeJobs,
       totalApplications,
       acceptedApplications,
+      users30DaysAgo,
+      seekers30DaysAgo,
+      employers30DaysAgo,
+      activeJobs30DaysAgo,
+      applications30DaysAgo,
+      accepted30DaysAgo,
+      pendingEmployers,
     ] = await Promise.all([
+      // Current totals
       prisma.user.count(),
       prisma.user.count({ where: { role: "SEEKER" } }),
       prisma.user.count({ where: { role: "EMPLOYER" } }),
       prisma.job.count({ where: { status: "ACTIVE" } }),
       prisma.application.count(),
       prisma.application.count({ where: { status: "ACCEPTED" } }),
+      
+      // Totals from 30 days ago
+      prisma.user.count({ where: { createdAt: { lt: thirtyDaysAgo } } }),
+      prisma.user.count({ where: { role: "SEEKER", createdAt: { lt: thirtyDaysAgo } } }),
+      prisma.user.count({ where: { role: "EMPLOYER", createdAt: { lt: thirtyDaysAgo } } }),
+      prisma.job.count({ where: { status: "ACTIVE", postedAt: { lt: thirtyDaysAgo } } }),
+      prisma.application.count({ where: { appliedAt: { lt: thirtyDaysAgo } } }),
+      prisma.application.count({ where: { status: "ACCEPTED", appliedAt: { lt: thirtyDaysAgo } } }),
+      
+      // Pending employers
+      prisma.user.count({ where: { role: "EMPLOYER", approved: false } }),
     ]);
-
+    
+    // Calculate percentage change
+    const calculateTrend = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      const change = ((current - previous) / previous) * 100;
+      return Math.round(change * 10) / 10;
+    };
+    
     res.json({
       totalUsers,
       totalSeekers,
@@ -43,6 +75,20 @@ export const getDashboard = async (req, res) => {
       activeJobs,
       totalApplications,
       acceptedApplications,
+      trends: {
+        users: calculateTrend(totalUsers, users30DaysAgo),
+        seekers: calculateTrend(totalSeekers, seekers30DaysAgo),
+        employers: calculateTrend(totalEmployers, employers30DaysAgo),
+        jobs: calculateTrend(activeJobs, activeJobs30DaysAgo),
+        applications: calculateTrend(totalApplications, applications30DaysAgo),
+        accepted: calculateTrend(acceptedApplications, accepted30DaysAgo),
+      },
+      insights: {
+        pendingEmployers: pendingEmployers || 0,
+      },
+      periodInfo: {
+        comparisonDays: 30,
+      },
     });
   } catch (err) {
     console.error(err);

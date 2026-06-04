@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import multer from "multer";
+import rateLimit from "express-rate-limit";
 import { register, login, getMe } from "../controllers/auth.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { fileURLToPath } from "url";
@@ -10,33 +11,57 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+// ─── RATE LIMITING FOR SECURITY ────────────────────────
+// Limit login attempts to prevent brute force
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: { message: "Too many login attempts. Please try again after 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Limit registration attempts to prevent spam
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 registrations per hour per IP
+  message: { message: "Too many registration attempts. Please try again after an hour." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// File upload configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, "../../uploads/"));
   },
   filename: (req, file, cb) => {
-    const uniqueName = `company-${Date.now()}${path.extname(file.originalname)}`;
+    // Sanitize filename
+    const cleanName = file.originalname.replace(/[^a-zA-Z0-9.]/g, '');
+    const uniqueName = `company-${Date.now()}-${cleanName}`;
     cb(null, uniqueName);
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowed = [".pdf", ".jpg", ".jpeg", ".png"];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error("Only PDF and images allowed"));
+      cb(new Error("Only PDF, JPG, JPEG, and PNG files are allowed"));
     }
   },
 });
 
-router.post("/register", register);
-router.post("/login", login);
+// ─── ROUTES WITH SECURITY MIDDLEWARE ───────────────────
+router.post("/register", registerLimiter, register);
+router.post("/login", loginLimiter, login);
 router.get("/me", authMiddleware, getMe);
+
 router.post("/upload-company-doc", upload.single("companyDocument"), (req, res) => {
   try {
     if (!req.file) {

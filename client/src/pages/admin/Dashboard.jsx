@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
-import { Users, Briefcase, FileText, CheckCircle, TrendingUp, Building2, Sparkles, Activity, Award, Zap } from "lucide-react";
+import { 
+  Users, Briefcase, FileText, CheckCircle, TrendingUp, 
+  Building2, Sparkles, Activity, Zap, TrendingDown, 
+  Minus, Clock, Award 
+} from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
 
-const StatCard = ({ label, value, icon: Icon, trend, delay }) => {
+const StatCard = ({ label, value, icon: Icon, trend, delay, trendLabel = "from last month" }) => {
   const [count, setCount] = useState(0);
   
   useEffect(() => {
@@ -24,28 +28,36 @@ const StatCard = ({ label, value, icon: Icon, trend, delay }) => {
     }, 1000 / steps);
     return () => clearInterval(timer);
   }, [value]);
-
-  const colors = {
-    blue:   { border: "border-blue-500",   bg: "bg-blue-50",   icon: "text-blue-500",   text: "text-blue-600"   },
-    purple: { border: "border-purple-500", bg: "bg-purple-50", icon: "text-purple-500", text: "text-purple-600" },
-    teal:   { border: "border-teal-500",   bg: "bg-teal-50",   icon: "text-teal-500",   text: "text-teal-600"   },
-    green:  { border: "border-green-500",  bg: "bg-green-50",  icon: "text-green-500",  text: "text-green-600"  },
-    amber:  { border: "border-amber-500",  bg: "bg-amber-50",  icon: "text-amber-500",  text: "text-amber-600"  },
+  
+  const getTrendColor = () => {
+    if (trend > 0) return "text-green-600";
+    if (trend < 0) return "text-red-600";
+    return "text-gray-500";
   };
-
+  
+  const getTrendIcon = () => {
+    if (trend > 0) return <TrendingUp size={12} className="text-green-500" />;
+    if (trend < 0) return <TrendingDown size={12} className="text-red-500" />;
+    return <Minus size={12} className="text-gray-400" />;
+  };
+  
+  const trendDisplay = Math.abs(trend).toFixed(1);
+  
   return (
     <div 
-      className="group bg-white rounded-xl border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+      className="group bg-white rounded-xl border border-gray-100 p-6 hover:shadow-lg hover:border-blue-200 transition-all duration-300 hover:-translate-y-1"
       style={{ animationDelay: `${delay}ms`, animation: 'fadeInUp 0.5s ease-out forwards', opacity: 0 }}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{label}</p>
           <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">{count.toLocaleString()}</p>
-          {trend && (
+          {trend !== undefined && trend !== null && (
             <div className="flex items-center gap-1 mt-2">
-              <TrendingUp size={12} className="text-green-500" />
-              <span className="text-xs text-green-600 font-medium">{trend}% from last month</span>
+              {getTrendIcon()}
+              <span className={`text-xs font-medium ${getTrendColor()}`}>
+                {trend > 0 ? "+" : ""}{trendDisplay}% {trendLabel}
+              </span>
             </div>
           )}
         </div>
@@ -62,20 +74,25 @@ const AdminDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchDashboard = async () => {
       try {
+        setLoading(true);
         const res = await api.get("/admin/dashboard");
+        console.log("Dashboard data:", res.data);
         setData(res.data);
+        setError(null);
       } catch (err) {
-        console.error(err);
+        console.error("Dashboard fetch error:", err);
+        setError(err.response?.data?.message || "Failed to load dashboard data");
       } finally {
         setLoading(false);
         setTimeout(() => setVisible(true), 100);
       }
     };
-    fetch();
+    fetchDashboard();
   }, []);
 
   if (loading) return (
@@ -86,14 +103,32 @@ const AdminDashboard = () => {
       </div>
     </div>
   );
+  
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="text-center max-w-md mx-auto p-6 bg-white rounded-xl shadow-lg">
+        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-4xl">⚠️</span>
+        </div>
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Unable to load dashboard</h2>
+        <p className="text-gray-500 mb-4">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  );
 
   const stats = [
-    { label: "TOTAL USERS", value: data?.totalUsers || 0, icon: Users, trend: 12, color: "blue" },
-    { label: "JOB SEEKERS", value: data?.totalSeekers || 0, icon: Users, trend: 8, color: "purple" },
-    { label: "EMPLOYERS", value: data?.totalEmployers || 0, icon: Building2, trend: 5, color: "teal" },
-    { label: "ACTIVE JOBS", value: data?.activeJobs || 0, icon: Briefcase, trend: 15, color: "green" },
-    { label: "APPLICATIONS", value: data?.totalApplications || 0, icon: FileText, trend: 23, color: "amber" },
-    { label: "ACCEPTED", value: data?.acceptedApplications || 0, icon: CheckCircle, trend: 18, color: "green" },
+    { label: "TOTAL USERS", value: data?.totalUsers || 0, icon: Users, trend: data?.trends?.users },
+    { label: "JOB SEEKERS", value: data?.totalSeekers || 0, icon: Users, trend: data?.trends?.seekers },
+    { label: "EMPLOYERS", value: data?.totalEmployers || 0, icon: Building2, trend: data?.trends?.employers },
+    { label: "ACTIVE JOBS", value: data?.activeJobs || 0, icon: Briefcase, trend: data?.trends?.jobs },
+    { label: "APPLICATIONS", value: data?.totalApplications || 0, icon: FileText, trend: data?.trends?.applications },
+    { label: "ACCEPTED", value: data?.acceptedApplications || 0, icon: CheckCircle, trend: data?.trends?.accepted },
   ];
 
   return (
@@ -116,13 +151,15 @@ const AdminDashboard = () => {
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Platform Overview</h1>
                 <p className="text-gray-500 mt-2">
-                  Welcome back, <span className="font-semibold text-blue-600">{user?.fullName?.split(' ')[0]}</span> — here's your platform snapshot
+                  Welcome back, <span className="font-semibold text-blue-600">{user?.fullName?.split(' ')[0] || 'Admin'}</span> — here's your platform snapshot
                 </p>
               </div>
               
               {/* Date Badge */}
               <div className="bg-white rounded-lg border border-gray-200 px-4 py-2 shadow-sm">
-                <p className="text-xs text-gray-400">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="text-xs text-gray-400">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
               </div>
             </div>
           </div>
@@ -130,12 +167,30 @@ const AdminDashboard = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
             {stats.map((stat, idx) => (
-              <StatCard key={stat.label} {...stat} delay={idx * 50} />
+              <StatCard 
+                key={stat.label} 
+                {...stat} 
+                delay={idx * 50}
+                trendLabel="from last 30 days"
+              />
             ))}
           </div>
 
+          {/* Pending Employers Alert */}
+          {data?.insights?.pendingEmployers > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+              <Clock size={18} className="text-amber-500 flex-shrink-0" />
+              <p className="text-sm text-amber-800 font-medium">
+                {data.insights.pendingEmployers} employer{data.insights.pendingEmployers > 1 ? "s" : ""} waiting for verification
+              </p>
+              <Link to="/admin/users" className="ml-auto text-sm text-amber-700 hover:underline">
+                Review now →
+              </Link>
+            </div>
+          )}
+
           {/* Quick Actions Section */}
-          <div className="mb-8">
+          <div>
             <div className="flex items-center gap-2 mb-4">
               <Zap size={18} className="text-blue-500" />
               <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Quick Actions</h2>
@@ -159,7 +214,7 @@ const AdminDashboard = () => {
                 </p>
                 <div className="mt-4 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                  <span className="text-xs text-gray-400">{data?.totalUsers || 0} active users</span>
+                  <span className="text-xs text-gray-400">{data?.totalUsers || 0} total users</span>
                 </div>
               </Link>
 
@@ -206,49 +261,6 @@ const AdminDashboard = () => {
                   <span className="text-xs text-gray-400">{data?.totalApplications || 0} total applications</span>
                 </div>
               </Link>
-            </div>
-          </div>
-
-          {/* Recent Activity Section */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Activity size={16} className="text-blue-500" />
-                <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wider">Platform Activity</h3>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Total Applications</p>
-                    <p className="text-xs text-gray-400">Across all job listings</p>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-600">{data?.totalApplications || 0}</p>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Acceptance Rate</p>
-                    <p className="text-xs text-gray-400">Applications that were accepted</p>
-                  </div>
-                  <p className="text-2xl font-bold text-green-600">
-                    {data?.totalApplications > 0 
-                      ? Math.round((data?.acceptedApplications / data?.totalApplications) * 100) 
-                      : 0}%
-                  </p>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Jobs per Employer</p>
-                    <p className="text-xs text-gray-400">Average jobs posted per employer</p>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {data?.totalEmployers > 0 
-                      ? (data?.activeJobs / data?.totalEmployers).toFixed(1) 
-                      : 0}
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
