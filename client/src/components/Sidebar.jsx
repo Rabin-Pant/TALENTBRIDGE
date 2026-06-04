@@ -1,43 +1,43 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  LayoutDashboard, Briefcase, FileText, User,
-  Bell, PlusCircle, Users, Shield,
+  Home, Briefcase, FileText, User,
+  Bell, PlusCircle, Users, Shield, MessageCircle, Network
 } from "lucide-react";
 
 const seekerLinks = [
-  { to: "/seeker/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/seeker/jobs", icon: Briefcase, label: "Browse Jobs" },
-  { to: "/seeker/applications", icon: FileText, label: "My Applications" },
-  { to: "/seeker/profile", icon: User, label: "Profile" },
-  { to: "/seeker/notifications", icon: Bell, label: "Notifications" },
+  { to: "/home",                  icon: Home,          label: "Home"          },
+  { to: "/network",               icon: Network,       label: "My Network"    },
+  { to: "/seeker/jobs",           icon: Briefcase,     label: "Browse Jobs"   },
+  { to: "/seeker/applications",   icon: FileText,      label: "Applications"  },
+  { to: "/messages",              icon: MessageCircle, label: "Messages"      },
+  { to: "/seeker/notifications",  icon: Bell,          label: "Notifications" },
+  { to: "/seeker/profile",        icon: User,          label: "Profile"       },
 ];
 
 const employerLinks = [
-  { to: "/employer/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/employer/jobs", icon: Briefcase, label: "My Jobs" },
-  { to: "/employer/jobs/post", icon: PlusCircle, label: "Post a Job" },
-  { to: "/employer/applicants", icon: Users, label: "Applicants" },
-  { to: "/employer/profile", icon: User, label: "Company Profile" },
-  { to: "/employer/notifications", icon: Bell, label: "Notifications" },
+  { to: "/home",                  icon: Home,          label: "Home"          },
+  { to: "/network",               icon: Network,       label: "My Network"    },
+  { to: "/employer/jobs",         icon: Briefcase,     label: "My Jobs"       },
+  { to: "/employer/jobs/post",    icon: PlusCircle,    label: "Post a Job"    },
+  { to: "/employer/applicants",   icon: Users,         label: "Applicants"    },
+  { to: "/messages",              icon: MessageCircle, label: "Messages"      },
+  { to: "/employer/notifications",icon: Bell,          label: "Notifications" },
+  { to: "/employer/profile",      icon: User,          label: "Company Profile"},
 ];
 
 const adminLinks = [
-  { to: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/admin/users", icon: Users, label: "Users" },
-  { to: "/admin/jobs", icon: Briefcase, label: "All Jobs" },
-  { to: "/admin/applications", icon: FileText, label: "Applications" },
+  { to: "/admin/dashboard",      icon: Home,      label: "Dashboard"    },
+  { to: "/admin/users",          icon: Users,     label: "Users"        },
+  { to: "/admin/jobs",           icon: Briefcase, label: "All Jobs"     },
+  { to: "/admin/applications",   icon: FileText,  label: "Applications" },
 ];
 
 const Sidebar = () => {
   const { user } = useAuth();
-
   const links =
-    user?.role === "SEEKER"
-      ? seekerLinks
-      : user?.role === "EMPLOYER"
-      ? employerLinks
-      : adminLinks;
+    user?.role === "SEEKER"   ? seekerLinks  :
+    user?.role === "EMPLOYER" ? employerLinks : adminLinks;
 
   return (
     <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 overflow-y-auto hidden md:block">
@@ -79,11 +79,9 @@ const Sidebar = () => {
       {/* Role Badge */}
       <div className="absolute bottom-4 left-4 right-4">
         <div className={`text-center py-2 rounded-lg text-xs font-semibold ${
-          user?.role === "SEEKER"
-            ? "bg-blue-50 text-blue-600"
-            : user?.role === "EMPLOYER"
-            ? "bg-green-50 text-green-600"
-            : "bg-red-50 text-red-600"
+          user?.role === "SEEKER"   ? "bg-blue-50 text-blue-600"   :
+          user?.role === "EMPLOYER" ? "bg-green-50 text-green-600" :
+          "bg-red-50 text-red-600"
         }`}>
           {user?.role === "ADMIN" && <Shield size={12} className="inline mr-1" />}
           {user?.role}
