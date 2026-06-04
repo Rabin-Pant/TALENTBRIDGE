@@ -1,13 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, LogOut, User, ChevronDown, Briefcase } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, Briefcase, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
+import SearchDropdown from "./SearchDropdown";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const notifPath =
@@ -48,18 +50,40 @@ const Navbar = () => {
           </span>
         </Link>
 
+        {/* Search Bar - Center */}
+        <div className="hidden md:block flex-1 max-w-md mx-8 relative">
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search for people..."
+              onFocus={() => setSearchOpen(true)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <SearchDropdown isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+        </div>
+
         {/* Right side */}
         <div className="flex items-center gap-4">
+          {/* Mobile search button */}
+          <button
+            onClick={() => setSearchOpen(!searchOpen)}
+            className="md:hidden p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+          >
+            <Search size={20} />
+          </button>
+
           {/* Notification Bell */}
           {notifPath && (
-            <Link 
-              to={notifPath} 
+            <Link
+              to={notifPath}
               className="relative p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
             >
               <Bell size={20} />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                  {unreadCount}
+                  {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </Link>
@@ -110,6 +134,13 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile search dropdown */}
+      {searchOpen && (
+        <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-b border-gray-200 p-3 shadow-lg z-50">
+          <SearchDropdown isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes fadeIn {

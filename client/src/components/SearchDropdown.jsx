@@ -38,8 +38,10 @@ const SearchDropdown = ({ isOpen, onClose }) => {
       setLoading(true);
       try {
         const res = await api.get(`/search/users?q=${encodeURIComponent(searchTerm)}`);
-        // Filter out current user
-        const filtered = res.data.users.filter(u => u.id !== user?.id);
+        // Filter out current user and admin users
+        const filtered = res.data.users.filter(u => 
+          u.id !== user?.id && u.role !== "ADMIN"
+        );
         setResults(filtered);
       } catch (err) {
         console.error("Search error:", err);

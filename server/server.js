@@ -13,6 +13,7 @@ import adminRoutes      from "./src/routes/admin.routes.js";
 import feedRoutes       from "./src/routes/feed.routes.js";
 import connectionRoutes from "./src/routes/connection.routes.js";
 import messageRoutes    from "./src/routes/message.routes.js";
+import searchRoutes     from "./src/routes/search.routes.js";  // ← ADD THIS
 import prisma           from "./src/config/db.js";
 import jwt              from "jsonwebtoken";
 
@@ -41,6 +42,7 @@ app.use("/api/admin",       adminRoutes);
 app.use("/api/feed",        feedRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/messages",    messageRoutes);
+app.use("/api/search",      searchRoutes);  // ← ADD THIS
 
 app.get("/", (req, res) => res.json({ message: "TalentBridge API running ✅" }));
 
