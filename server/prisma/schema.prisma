@@ -104,10 +104,20 @@ model User {
   companyRegNumber   String?
   companyDocument    String?
 
-  // Relations
-  postedJobs        Job[]           @relation("EmployerJobs")
-  applications      Application[]   @relation("SeekerApplications")
-  notifications     Notification[]  @relation("UserNotifications")
+ // Relations
+  postedJobs           Job[]            @relation("EmployerJobs")
+  applications         Application[]    @relation("SeekerApplications")
+  notifications        Notification[]   @relation("UserNotifications")
+
+  // Social relations
+  posts                Post[]           @relation("UserPosts")
+  likes                Like[]           @relation("UserLikes")
+  comments             Comment[]        @relation("UserComments")
+  sentConnections      Connection[]     @relation("SentConnections")
+  receivedConnections  Connection[]     @relation("ReceivedConnections")
+  conversationsAsUser1 Conversation[]   @relation("ConversationUser1")
+  conversationsAsUser2 Conversation[]   @relation("ConversationUser2")
+  sentMessages         Message[]        @relation("SentMessages")  
 
   @@map("users")
 }
@@ -185,4 +195,103 @@ model Notification {
   recipient   User   @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum PostType {
+  UPDATE
+  ACHIEVEMENT
+  JOB_UPDATE
+  ANNOUNCEMENT
+}
+
+model Post {
+  id        String    @id @default(uuid())
+  content   String
+  image     String?
+  type      PostType  @default(UPDATE)
+  likesCount Int      @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  authorId  String
+  author    User      @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  likes     Like[]
+  comments  Comment[]
+
+  @@map("posts")
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("UserLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("likes")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Connection {
+  id        String           @id @default(uuid())
+  status    ConnectionStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+
+  senderId   String
+  sender     User   @relation("SentConnections", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User   @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@map("connections")
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user1Id   String
+  user1     User      @relation("ConversationUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id   String
+  user2     User      @relation("ConversationUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@unique([user1Id, user2Id])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  content        String
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
 }
