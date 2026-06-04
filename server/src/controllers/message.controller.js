@@ -1,13 +1,21 @@
 import prisma from "../config/db.js";
 
-// ─── GET ALL CONVERSATIONS WITH UNREAD COUNTS ───────────
+// ─── GET ALL CONVERSATIONS (Only show conversations not deleted by user) ───
 export const getConversations = async (req, res) => {
   try {
     const userId = req.user.id;
 
     const conversations = await prisma.conversation.findMany({
       where: {
-        OR: [{ user1Id: userId }, { user2Id: userId }],
+        AND: [
+          {
+            OR: [{ user1Id: userId }, { user2Id: userId }],
+          },
+          {
+            // Only get conversations where user hasn't deleted it
+            NOT: { deletedFor: { has: userId } },
+          },
+        ],
       },
       include: {
         user1: {
@@ -19,18 +27,22 @@ export const getConversations = async (req, res) => {
         messages: {
           take: 1,
           orderBy: { createdAt: "desc" },
+          where: {
+            // Only show last message if not deleted by user
+            NOT: { deletedFor: { has: userId } }
+          }
         },
       },
       orderBy: { updatedAt: "desc" },
     });
 
-    // Get unread counts for each conversation
     const formatted = await Promise.all(conversations.map(async (c) => {
       const unreadCount = await prisma.message.count({
         where: {
           conversationId: c.id,
           senderId: { not: userId },
           read: false,
+          deletedFor: { none: userId } // Don't count messages deleted by user
         },
       });
 
@@ -56,12 +68,19 @@ export const getOrCreateConversation = async (req, res) => {
     const userId = req.user.id;
     const { targetId } = req.params;
 
-    // Check existing
+    // Check existing conversation (not deleted by user)
     let conversation = await prisma.conversation.findFirst({
       where: {
-        OR: [
-          { user1Id: userId, user2Id: targetId },
-          { user1Id: targetId, user2Id: userId },
+        AND: [
+          {
+            OR: [
+              { user1Id: userId, user2Id: targetId },
+              { user1Id: targetId, user2Id: userId },
+            ],
+          },
+          {
+            NOT: { deletedFor: { has: userId } },
+          },
         ],
       },
       include: {
@@ -70,25 +89,59 @@ export const getOrCreateConversation = async (req, res) => {
       },
     });
 
+    // If conversation exists but is deleted by user, we need to "undelete" it
     if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: {
-          user1Id: userId,
-          user2Id: targetId,
+      // Check if conversation exists but was deleted by user
+      const deletedConversation = await prisma.conversation.findFirst({
+        where: {
+          OR: [
+            { user1Id: userId, user2Id: targetId },
+            { user1Id: targetId, user2Id: userId },
+          ],
         },
         include: {
           user1: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
           user2: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
         },
       });
+
+      if (deletedConversation) {
+        // Remove user from deletedFor array (undelete)
+        conversation = await prisma.conversation.update({
+          where: { id: deletedConversation.id },
+          data: {
+            deletedFor: {
+              set: deletedConversation.deletedFor.filter(id => id !== userId)
+            }
+          },
+          include: {
+            user1: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
+            user2: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
+          },
+        });
+      } else {
+        // Create new conversation
+        conversation = await prisma.conversation.create({
+          data: {
+            user1Id: userId,
+            user2Id: targetId,
+            deletedFor: [],
+          },
+          include: {
+            user1: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
+            user2: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
+          },
+        });
+      }
     }
 
-    // Get unread count
+    // Get unread count (excluding messages deleted by user)
     const unreadCount = await prisma.message.count({
       where: {
         conversationId: conversation.id,
         senderId: { not: userId },
         read: false,
+        deletedFor: { none: userId }
       },
     });
 
@@ -105,7 +158,7 @@ export const getOrCreateConversation = async (req, res) => {
   }
 };
 
-// ─── GET MESSAGES ────────────────────────────────────
+// ─── GET MESSAGES (Only show messages not deleted by user) ───
 export const getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -121,40 +174,36 @@ export const getMessages = async (req, res) => {
     }
 
     const messages = await prisma.message.findMany({
-      where: { conversationId },
+      where: {
+        conversationId,
+        // Only get messages that aren't deleted by this user
+        NOT: { deletedFor: { has: userId } }
+      },
       orderBy: { createdAt: "asc" },
       include: {
         sender: { select: { id: true, fullName: true } },
       },
     });
 
-    // Mark messages as read when user opens conversation
-    const updateResult = await prisma.message.updateMany({
-      where: { conversationId, senderId: { not: userId }, read: false },
+    // Mark messages as read (only for messages not deleted)
+    await prisma.message.updateMany({
+      where: { 
+        conversationId, 
+        senderId: { not: userId }, 
+        read: false,
+        deletedFor: { none: userId }
+      },
       data: { read: true },
     });
 
-    // Get updated unread count for this conversation
-    const remainingUnread = await prisma.message.count({
-      where: {
-        conversationId,
-        senderId: { not: userId },
-        read: false,
-      },
-    });
-
-    res.json({ 
-      messages,
-      unreadCleared: updateResult.count,
-      remainingUnread
-    });
+    res.json({ messages });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// ─── SEND MESSAGE (REST fallback) ────────────────────
+// ─── SEND MESSAGE ────────────────────────────────────
 export const sendMessage = async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -170,7 +219,13 @@ export const sendMessage = async (req, res) => {
     }
 
     const message = await prisma.message.create({
-      data: { content, conversationId, senderId: userId, read: false },
+      data: { 
+        content, 
+        conversationId, 
+        senderId: userId, 
+        read: false,
+        deletedFor: [] 
+      },
       include: { sender: { select: { id: true, fullName: true } } },
     });
 
@@ -186,27 +241,126 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// ─── GET TOTAL UNREAD COUNT ────────────────
+// ─── DELETE SINGLE MESSAGE (Soft delete - only for current user) ───
+export const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = req.user.id;
+
+    // Find the message
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      include: { conversation: true }
+    });
+
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    // Check if user is the sender of the message
+    if (message.senderId !== userId) {
+      return res.status(403).json({ message: "You can only delete your own messages" });
+    }
+
+    // Check if message is already deleted by this user
+    if (message.deletedFor.includes(userId)) {
+      return res.status(400).json({ message: "Message already deleted" });
+    }
+
+    // Soft delete: Add user to deletedFor array
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        deletedFor: {
+          push: userId
+        }
+      }
+    });
+
+    // Update conversation's updatedAt timestamp
+    await prisma.conversation.update({
+      where: { id: message.conversationId },
+      data: { updatedAt: new Date() }
+    });
+
+    res.json({ message: "Message deleted successfully from your side" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── DELETE ENTIRE CONVERSATION (Soft delete - only for current user) ───
+export const deleteConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const userId = req.user.id;
+
+    // Find the conversation
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    // Check if user is part of the conversation
+    if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
+      return res.status(403).json({ message: "You don't have permission to delete this conversation" });
+    }
+
+    // Check if already deleted by this user
+    if (conversation.deletedFor.includes(userId)) {
+      return res.status(400).json({ message: "Conversation already deleted" });
+    }
+
+    // Soft delete: Add user to deletedFor array
+    const updatedConversation = await prisma.conversation.update({
+      where: { id: conversationId },
+      data: {
+        deletedFor: {
+          push: userId
+        }
+      }
+    });
+
+    res.json({ message: "Conversation deleted from your side successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── GET TOTAL UNREAD COUNT FOR SIDEBAR ────────────────
 export const getTotalUnreadCount = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get all conversations where user is a participant
+    // Get all conversations where user is a participant and not deleted
     const conversations = await prisma.conversation.findMany({
       where: {
-        OR: [{ user1Id: userId }, { user2Id: userId }],
+        AND: [
+          {
+            OR: [{ user1Id: userId }, { user2Id: userId }],
+          },
+          {
+            NOT: { deletedFor: { has: userId } },
+          },
+        ],
       },
       select: { id: true },
     });
 
     const conversationIds = conversations.map(c => c.id);
 
-    // Count unread messages
+    // Count unread messages (excluding deleted ones)
     const totalUnread = await prisma.message.count({
       where: {
         conversationId: { in: conversationIds },
         senderId: { not: userId },
         read: false,
+        deletedFor: { none: userId }
       },
     });
 
@@ -228,6 +382,7 @@ export const markConversationRead = async (req, res) => {
         conversationId,
         senderId: { not: userId },
         read: false,
+        deletedFor: { none: userId }
       },
       data: { read: true },
     });

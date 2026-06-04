@@ -277,6 +277,8 @@ model Conversation {
   user2Id   String
   user2     User      @relation("ConversationUser2", fields: [user2Id], references: [id], onDelete: Cascade)
   messages  Message[]
+  
+  deletedFor String[] @default([])  // Store user IDs who deleted this conversation
 
   @@unique([user1Id, user2Id])
   @@map("conversations")
@@ -292,6 +294,8 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   senderId       String
   sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  deletedFor     String[]     @default([])  // Store user IDs who deleted this message
 
   @@map("messages")
 }

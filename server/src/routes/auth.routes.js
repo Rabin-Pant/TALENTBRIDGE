@@ -11,17 +11,21 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-// ─── RATE LIMITING FOR SECURITY ────────────────────────
-// Limit login attempts to prevent brute force
+// ─── RATE LIMITER FOR LOGIN (only counts FAILED attempts) ───
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  message: { message: "Too many login attempts. Please try again after 15 minutes." },
+  max: 5, // 5 failed attempts allowed
+  message: { message: "Too many failed login attempts. Please try again after 15 minutes." },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: true, 
+  keyGenerator: (req) => {
+    // Use IP + email for more precise rate limiting
+    return `${req.ip}-${req.body.email?.toLowerCase() || 'unknown'}`;
+  },
 });
 
-// Limit registration attempts to prevent spam
+// ─── RATE LIMITER FOR REGISTRATION (counts all attempts) ───
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // 3 registrations per hour per IP
@@ -36,7 +40,6 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, "../../uploads/"));
   },
   filename: (req, file, cb) => {
-    // Sanitize filename
     const cleanName = file.originalname.replace(/[^a-zA-Z0-9.]/g, '');
     const uniqueName = `company-${Date.now()}-${cleanName}`;
     cb(null, uniqueName);
@@ -45,7 +48,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = [".pdf", ".jpg", ".jpeg", ".png"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -57,7 +60,7 @@ const upload = multer({
   },
 });
 
-// ─── ROUTES WITH SECURITY MIDDLEWARE ───────────────────
+// ─── ROUTES ───
 router.post("/register", registerLimiter, register);
 router.post("/login", loginLimiter, login);
 router.get("/me", authMiddleware, getMe);

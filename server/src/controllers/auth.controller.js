@@ -154,50 +154,42 @@ export const register = async (req, res) => {
   }
 };
 
-// ─── LOGIN (WITH SECURITY) ────────────────────────────
+// ─── LOGIN ────────────────────────────
 export const login = async (req, res) => {
   try {
     let { email, password } = req.body;
 
-    // ─── INPUT SANITIZATION ─────────────────────────────
+    // Input sanitization
     email = email ? email.toLowerCase().trim() : null;
 
-    // ─── VALIDATION ─────────────────────────────────────
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
-    }
-
-    if (!password) {
-      return res.status(400).json({ message: "Password is required" });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
     }
 
     // Find user
     const user = await prisma.user.findUnique({ where: { email } });
     
-    // Use generic message for security (don't reveal if email exists)
+    // Return 401 for invalid credentials (triggers rate limit)
     if (!user) {
-      // Log failed attempt
       console.log(`[SECURITY] Failed login attempt for email: ${email}`);
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
     // Check if account is active
     if (!user.active) {
-      console.log(`[SECURITY] Disabled account login attempt: ${email}`);
       return res.status(403).json({ message: "Your account has been disabled. Please contact support." });
     }
 
     // Check employer approval
     if (user.role === "EMPLOYER" && !user.approved) {
-      console.log(`[SECURITY] Unapproved employer login attempt: ${email}`);
-      return res.status(403).json({ message: "Your employer account is pending admin approval. You will be notified once approved." });
+      return res.status(403).json({ message: "Your employer account is pending admin approval." });
     }
 
     // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       console.log(`[SECURITY] Failed password attempt for: ${email}`);
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
     // Update last login
@@ -206,7 +198,6 @@ export const login = async (req, res) => {
       data: { lastLogin: new Date() },
     });
 
-    // Log successful login
     console.log(`[AUDIT] User logged in: ${email} (${user.role})`);
 
     const token = generateToken(user);
