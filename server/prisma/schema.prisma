@@ -278,7 +278,7 @@ model Conversation {
   user2     User      @relation("ConversationUser2", fields: [user2Id], references: [id], onDelete: Cascade)
   messages  Message[]
   
-  deletedFor String[] @default([])  // Store user IDs who deleted this conversation
+  deletedFor String[] @default([])  // Users who soft-deleted this conversation
 
   @@unique([user1Id, user2Id])
   @@map("conversations")
@@ -295,7 +295,7 @@ model Message {
   senderId       String
   sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   
-  deletedFor     String[]     @default([])  // Store user IDs who deleted this message
+  deletedFor     String[]     @default([])  // Users who soft-deleted this message
 
   @@map("messages")
 }

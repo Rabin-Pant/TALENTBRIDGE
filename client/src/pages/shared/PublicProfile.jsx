@@ -37,6 +37,7 @@ const PublicProfile = () => {
   const [visible, setVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("about");
   const [connecting, setConnecting] = useState(false);
+  const [messaging, setMessaging] = useState(false);
   const [toast, setToast] = useState(null);
 
   const isOwnProfile = userId === currentUser?.id;
@@ -51,7 +52,6 @@ const PublicProfile = () => {
       try {
         setLoading(true);
         
-        // Use the correct endpoint from connection.controller.js
         const [profileRes, postsRes, statusRes] = await Promise.all([
           api.get(`/connections/public-profile/${userId}`),
           api.get(`/feed/user/${userId}`),
@@ -104,69 +104,90 @@ const PublicProfile = () => {
   };
 
   const handleMessage = async () => {
-    try {
-      const res = await api.get(`/messages/conversations/${userId}/get-or-create`);
+  try {
+    setMessaging(true);
+    console.log("Starting conversation with user:", userId);
+    
+    const res = await api.get(`/messages/conversations/${userId}/get-or-create`);
+    console.log("Conversation response:", res.data);
+    
+    if (res.data.conversation && res.data.conversation.id) {
+      // This will navigate directly to the messages page with the conversation open
       navigate(`/messages/${res.data.conversation.id}`);
-    } catch (err) {
-      console.error(err);
+    } else {
+      showToast("Could not start conversation", "error");
     }
-  };
+  } catch (err) {
+    console.error("Message error:", err);
+    showToast(err.response?.data?.message || "Failed to start conversation", "error");
+  } finally {
+    setMessaging(false);
+  }
+};
 
-  const ConnectButton = () => {
-    if (isOwnProfile) return null;
+const ConnectButton = () => {
+  if (isOwnProfile) return null;
 
-    if (connStatus.status === "ACCEPTED") return (
-      <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-600 rounded-xl text-sm font-medium border border-green-200">
-          <UserCheck size={15} /> Connected
-        </span>
-      </div>
-    );
-
-    if (connStatus.status === "PENDING" && connStatus.isSender) return (
+  if (connStatus.status === "ACCEPTED") return (
+    <div className="flex items-center gap-2">
+      <span className="flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-600 rounded-xl text-sm font-medium border border-green-200">
+        <UserCheck size={15} /> Connected
+      </span>
       <button
-        onClick={handleWithdraw}
-        className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-      >
-        <Clock size={15} /> Pending
-      </button>
-    );
-
-    if (connStatus.status === "PENDING" && !connStatus.isSender) return (
-      <div className="flex items-center gap-2">
-        <button
-          onClick={async () => {
-            await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "ACCEPT" });
-            setConnStatus({ ...connStatus, status: "ACCEPTED" });
-            showToast("Connection accepted!");
-          }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
-          <UserCheck size={15} /> Accept
-        </button>
-        <button
-          onClick={async () => {
-            await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "DECLINE" });
-            setConnStatus({ status: "NONE" });
-          }}
-          className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-        >
-          <UserX size={15} /> Decline
-        </button>
-      </div>
-    );
-
-    return (
-      <button
-        onClick={handleConnect}
-        disabled={connecting}
+        onClick={handleMessage}
+        disabled={messaging}
         className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
       >
-        <UserPlus size={15} />
-        {connecting ? "Sending..." : "Connect"}
+        <MessageCircle size={15} />
+        {messaging ? "Opening..." : "Message"}
       </button>
-    );
-  };
+    </div>
+  );
+
+  if (connStatus.status === "PENDING" && connStatus.isSender) return (
+    <button
+      onClick={handleWithdraw}
+      className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+    >
+      <Clock size={15} /> Pending
+    </button>
+  );
+
+  if (connStatus.status === "PENDING" && !connStatus.isSender) return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={async () => {
+          await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "ACCEPT" });
+          setConnStatus({ ...connStatus, status: "ACCEPTED" });
+          showToast("Connection accepted!");
+        }}
+        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+      >
+        <UserCheck size={15} /> Accept
+      </button>
+      <button
+        onClick={async () => {
+          await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "DECLINE" });
+          setConnStatus({ status: "NONE" });
+        }}
+        className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+      >
+        <UserX size={15} /> Decline
+      </button>
+    </div>
+  );
+
+  return (
+    <button
+      onClick={handleConnect}
+      disabled={connecting}
+      className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+    >
+      <UserPlus size={15} />
+      {connecting ? "Sending..." : "Connect"}
+    </button>
+  );
+};
 
   const timeAgo = (date) => {
     const diff = Date.now() - new Date(date).getTime();
@@ -233,25 +254,7 @@ const PublicProfile = () => {
             <div className="px-6 pb-6">
               <div className="flex items-end justify-between -mt-10 mb-4 flex-wrap gap-3">
                 <Avatar name={profile?.fullName} role={profile?.role} size="lg" />
-                <div className="flex items-center gap-2 flex-wrap">
-                  <ConnectButton />
-                  {!isOwnProfile && connStatus.status === "ACCEPTED" && (
-                    <button
-                      onClick={handleMessage}
-                      className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      <MessageCircle size={15} /> Message
-                    </button>
-                  )}
-                  {isOwnProfile && (
-                    <Link
-                      to={profile?.role === "SEEKER" ? "/seeker/profile" : "/employer/profile"}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      Edit Profile
-                    </Link>
-                  )}
-                </div>
+                <ConnectButton />
               </div>
 
               <h1 className="text-xl font-bold text-gray-900">{profile?.fullName || "User"}</h1>

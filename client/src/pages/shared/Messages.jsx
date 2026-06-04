@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Send, Search, MessageCircle, ArrowLeft,
-  Sparkles, Trash2, MoreVertical, X, AlertTriangle
+  Sparkles, Trash2, MoreVertical, X, AlertTriangle, UserPlus
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -57,6 +57,8 @@ const Messages = () => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [typing, setTyping] = useState(false);
   const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -64,9 +66,11 @@ const Messages = () => {
   const [showDeleteConvModal, setShowDeleteConvModal] = useState(false);
   const [showDeleteMsgModal, setShowDeleteMsgModal] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
-
+  const [searching, setSearching] = useState(false);
+  const [deleteMsgOption, setDeleteMsgOption] = useState(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   // Scroll to bottom
   const scrollToBottom = useCallback(() => {
@@ -93,6 +97,65 @@ const Messages = () => {
     };
     fetchConversations();
   }, []);
+
+  // Search for users to start conversation
+  const handleSearch = async (value) => {
+    setSearch(value);
+    
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    if (!value.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+    
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setSearching(true);
+        // Get connections to search only among connected users
+        const connectionsRes = await api.get("/connections");
+        const connectedUsers = connectionsRes.data.connections || [];
+        
+        // Filter connected users based on search term
+        const filtered = connectedUsers.filter(conn => 
+          conn.user?.fullName?.toLowerCase().includes(value.toLowerCase())
+        );
+        
+        setSearchResults(filtered);
+        setShowSearchResults(true);
+      } catch (err) {
+        console.error("Search error:", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 500);
+  };
+
+  // Start new conversation with a user
+  const startConversation = async (targetUser) => {
+    try {
+      setSearching(true);
+      const res = await api.get(`/messages/conversations/${targetUser.id}/get-or-create`);
+      
+      if (res.data.conversation && res.data.conversation.id) {
+        // Refresh conversations list
+        const convRes = await api.get("/messages/conversations");
+        setConversations(convRes.data.conversations || []);
+        
+        // Open the new conversation
+        openConversation(res.data.conversation);
+        setShowSearchResults(false);
+        setSearch("");
+      }
+    } catch (err) {
+      console.error("Failed to start conversation:", err);
+    } finally {
+      setSearching(false);
+    }
+  };
 
   // Open conversation from URL param
   useEffect(() => {
@@ -180,54 +243,56 @@ const Messages = () => {
   }, [activeConv]);
 
   // Delete single message
-  const handleDeleteMessage = async () => {
-    if (!selectedMessage) return;
-    
-    try {
-      await api.delete(`/messages/message/${selectedMessage.id}`);
-      
-      // Remove message from state
-      setMessages(prev => prev.filter(m => m.id !== selectedMessage.id));
-      
-      // Update last message in conversation list
-      const remainingMessages = messages.filter(m => m.id !== selectedMessage.id);
-      const lastMessage = remainingMessages.length > 0 ? remainingMessages[remainingMessages.length - 1] : null;
-      
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === activeConv?.id
-            ? { ...conv, lastMessage: lastMessage, updatedAt: lastMessage?.createdAt || conv.updatedAt }
-            : conv
-        )
-      );
-      
-      setShowDeleteMsgModal(false);
-      setSelectedMessage(null);
-    } catch (err) {
-      console.error("Failed to delete message:", err);
-      alert("Failed to delete message");
+  // Delete single message
+const handleDeleteMessage = async (type) => {
+  if (!selectedMessage) return;
+  
+  try {
+    if (type === 'me') {
+      // Soft delete - only for me
+      await api.delete(`/messages/message/${selectedMessage.id}/soft`);
+    } else {
+      // Hard delete - for everyone
+      await api.delete(`/messages/message/${selectedMessage.id}/hard`);
     }
-  };
+    
+    // Remove message from state
+    setMessages(prev => prev.filter(m => m.id !== selectedMessage.id));
+    
+    // Update last message in conversation list
+    const remainingMessages = messages.filter(m => m.id !== selectedMessage.id);
+    const lastMessage = remainingMessages.length > 0 ? remainingMessages[remainingMessages.length - 1] : null;
+    
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.id === activeConv?.id
+          ? { ...conv, lastMessage: lastMessage, updatedAt: lastMessage?.createdAt || conv.updatedAt }
+          : conv
+      )
+    );
+    
+    setShowDeleteMsgModal(false);
+    setSelectedMessage(null);
+    setDeleteMsgOption(null);
+  } catch (err) {
+    console.error("Failed to delete message:", err);
+    alert("Failed to delete message");
+  }
+};
 
   // Delete entire conversation
   const handleDeleteConversation = async () => {
     if (!activeConv?.id) return;
     
     try {
-      await api.delete(`/messages/conversation/${activeConv.id}`);
+      await api.delete(`/messages/conversation/${activeConv.id}/soft`);
       
-      // Remove conversation from list
       setConversations(prev => prev.filter(c => c.id !== activeConv.id));
-      
-      // Clear active conversation
       setActiveConv(null);
       setMessages([]);
       setShowDeleteConvModal(false);
-      
-      // Navigate back to messages
       navigate("/messages", { replace: true });
       setIsMobileChat(false);
-      
     } catch (err) {
       console.error("Failed to delete conversation:", err);
       alert("Failed to delete conversation");
@@ -247,7 +312,6 @@ const Messages = () => {
     const handleNewMessage = (message) => {
       if (!message?.conversationId) return;
       
-      // Update messages if it's the active conversation
       if (activeConv?.id === message.conversationId) {
         setMessages((prev) => {
           const exists = prev.some((m) => m.id === message.id);
@@ -256,7 +320,6 @@ const Messages = () => {
         });
       }
       
-      // Update conversations list
       setConversations((prev) => {
         const updated = prev.map((conv) => {
           if (conv.id === message.conversationId) {
@@ -328,37 +391,51 @@ const Messages = () => {
 
       {/* Delete Message Confirmation Modal */}
       {showDeleteMsgModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 size={24} className="text-red-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Delete Message?</h3>
-            </div>
-            <p className="text-gray-600 mb-6">
-              This message will be permanently deleted. This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteMsgModal(false);
-                  setSelectedMessage(null);
-                }}
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteMessage}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+          <Trash2 size={24} className="text-red-500" />
         </div>
-      )}
+        <h3 className="text-lg font-semibold text-gray-900">Delete Message?</h3>
+      </div>
+      <p className="text-gray-600 mb-6">
+        Choose how you want to delete this message.
+      </p>
+      <div className="space-y-3">
+        <button
+          onClick={() => {
+            setDeleteMsgOption('me');
+            handleDeleteMessage('me');
+          }}
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-left hover:bg-gray-50 transition-colors"
+        >
+          <div className="font-medium text-gray-900">Delete for me</div>
+          <div className="text-xs text-gray-500">Message will be deleted from your side only</div>
+        </button>
+        <button
+          onClick={() => {
+            setDeleteMsgOption('everyone');
+            handleDeleteMessage('everyone');
+          }}
+          className="w-full px-4 py-3 border border-red-200 rounded-xl text-left hover:bg-red-50 transition-colors"
+        >
+          <div className="font-medium text-red-600">Delete for everyone</div>
+          <div className="text-xs text-gray-500">Message will be deleted from both sides</div>
+        </button>
+      </div>
+      <button
+        onClick={() => {
+          setShowDeleteMsgModal(false);
+          setSelectedMessage(null);
+        }}
+        className="w-full mt-4 px-4 py-2 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
 
       {/* Delete Conversation Confirmation Modal */}
       {showDeleteConvModal && (
@@ -371,7 +448,7 @@ const Messages = () => {
               <h3 className="text-lg font-semibold text-gray-900">Delete Conversation?</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              This will permanently delete all messages in this conversation. This action cannot be undone.
+              This conversation will be deleted from your side only. The other person will still see it.
             </p>
             <div className="flex gap-3">
               <button
@@ -408,12 +485,51 @@ const Messages = () => {
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search conversations..."
+                  placeholder="Search connected users..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onFocus={() => search && searchResults.length > 0 && setShowSearchResults(true)}
                   className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              
+              {/* Search Results Dropdown */}
+              {showSearchResults && searchResults.length > 0 && (
+                <div className="absolute left-4 right-4 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-64 overflow-y-auto">
+                  <div className="p-2 border-b border-gray-100">
+                    <p className="text-xs text-gray-400 px-3 py-1">Start a new conversation</p>
+                  </div>
+                  {searchResults.map((conn) => (
+                    <button
+                      key={conn.user.id}
+                      onClick={() => startConversation(conn.user)}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <Avatar
+                        name={conn.user.fullName}
+                        role={conn.user.role}
+                        size="sm"
+                        online={isOnline(conn.user.id)}
+                      />
+                      <div className="flex-1 text-left">
+                        <p className="font-medium text-gray-900 text-sm">{conn.user.fullName}</p>
+                        <p className="text-xs text-gray-500">
+                          {conn.user.currentTitle || conn.user.companyName || conn.user.role}
+                        </p>
+                      </div>
+                      <UserPlus size={16} className="text-blue-500" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* No Results */}
+              {showSearchResults && search && searchResults.length === 0 && !searching && (
+                <div className="absolute left-4 right-4 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 p-4 text-center">
+                  <p className="text-sm text-gray-500">No connected users found</p>
+                  <p className="text-xs text-gray-400 mt-1">Try a different name</p>
+                </div>
+              )}
             </div>
 
             {/* Conversation List */}
@@ -422,7 +538,7 @@ const Messages = () => {
                 <div className="p-8 text-center">
                   <MessageCircle size={36} className="text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 text-sm font-medium">No conversations yet</p>
-                  <p className="text-gray-400 text-xs mt-1">Connect with people and start messaging</p>
+                  <p className="text-gray-400 text-xs mt-1">Search for connected users above to start messaging</p>
                 </div>
               ) : (
                 filteredConvs.map((conv) => (
@@ -479,7 +595,7 @@ const Messages = () => {
                     <MessageCircle size={36} className="text-blue-600" />
                   </div>
                   <h3 className="font-semibold text-gray-700 mb-1">Your Messages</h3>
-                  <p className="text-gray-400 text-sm">Select a conversation to start chatting</p>
+                  <p className="text-gray-400 text-sm">Search for connected users above to start chatting</p>
                 </div>
               </div>
             ) : (
@@ -517,7 +633,6 @@ const Messages = () => {
                     </div>
                   </div>
                   
-                  {/* Delete Conversation Button */}
                   <button
                     onClick={() => setShowDeleteConvModal(true)}
                     className="p-2 hover:bg-red-50 rounded-lg transition-colors group"
@@ -575,30 +690,28 @@ const Messages = () => {
                                   {msg.content}
                                 </div>
                                 <div className="flex items-center justify-end gap-2 mt-1 px-1">
-                                  <span className="text-xs text-gray-400">
-                                    {formatMessageTime(msg.createdAt)}
-                                  </span>
-                                  {/* Delete Message Button - Only for user's own messages */}
-                                  {isMine && (
-                                    <button
-                                      onClick={() => {
-                                        setSelectedMessage(msg);
-                                        setShowDeleteMsgModal(true);
-                                      }}
-                                      className="p-1 hover:bg-red-50 rounded-lg transition-colors"
-                                      title="Delete message"
-                                    >
-                                      <Trash2 size={12} className="text-gray-400 hover:text-red-500" />
-                                    </button>
-                                  )}
-                                </div>
+  <span className="text-xs text-gray-400">
+    {formatMessageTime(msg.createdAt)}
+  </span>
+  {isMine && (
+    <button
+      onClick={() => {
+        setSelectedMessage(msg);
+        setShowDeleteMsgModal(true);
+      }}
+      className="p-1 hover:bg-red-50 rounded-lg transition-colors"
+      title="Delete message"
+    >
+      <Trash2 size={12} className="text-gray-400 hover:text-red-500" />
+    </button>
+  )}
+</div>
                               </div>
                             </div>
                           </div>
                         );
                       })}
 
-                      {/* Typing Indicator */}
                       {typing && (
                         <div className="flex items-end gap-2">
                           <Avatar 

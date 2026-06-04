@@ -154,45 +154,39 @@ export const register = async (req, res) => {
   }
 };
 
-// ─── LOGIN ────────────────────────────
+// ─── LOGIN ───────────────────────────────────────────
 export const login = async (req, res) => {
   try {
     let { email, password } = req.body;
 
-    // Input sanitization
     email = email ? email.toLowerCase().trim() : null;
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return res.status(401).json({ message: "Email and password are required" });
     }
 
-    // Find user
     const user = await prisma.user.findUnique({ where: { email } });
     
-    // Return 401 for invalid credentials (triggers rate limit)
+    // Return 401 for invalid email (triggers rate limit)
     if (!user) {
       console.log(`[SECURITY] Failed login attempt for email: ${email}`);
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Check if account is active
     if (!user.active) {
-      return res.status(403).json({ message: "Your account has been disabled. Please contact support." });
+      return res.status(403).json({ message: "Your account has been disabled" });
     }
 
-    // Check employer approval
     if (user.role === "EMPLOYER" && !user.approved) {
-      return res.status(403).json({ message: "Your employer account is pending admin approval." });
+      return res.status(403).json({ message: "Your employer account is pending admin approval" });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       console.log(`[SECURITY] Failed password attempt for: ${email}`);
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Update last login
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
