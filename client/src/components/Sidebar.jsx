@@ -1,5 +1,8 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useState, useEffect } from "react";
+import api from "../api/axios";
+import socket from "../api/socket";
 import {
   Home, Briefcase, FileText, User,
   Bell, PlusCircle, Users, Shield, MessageCircle, Network,
@@ -36,6 +39,8 @@ const adminLinks = [
 
 const Sidebar = () => {
   const { user } = useAuth();
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+
   const links =
     user?.role === "SEEKER"   ? seekerLinks  :
     user?.role === "EMPLOYER" ? employerLinks : adminLinks;
@@ -47,6 +52,39 @@ const Sidebar = () => {
   };
 
   const colors = roleColors[user?.role] || roleColors.SEEKER;
+
+  // Fetch unread message count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await api.get("/messages/unread-count");
+        setUnreadMessageCount(res.data.totalUnread || 0);
+      } catch (err) {
+        console.error("Failed to fetch unread count:", err);
+      }
+    };
+
+    if (user) {
+      fetchUnreadCount();
+    }
+
+    // Listen for new messages to update badge in real-time
+    const handleNewMessage = () => {
+      fetchUnreadCount();
+    };
+
+    const handleMessageRead = () => {
+      fetchUnreadCount();
+    };
+
+    socket.on("newMessage", handleNewMessage);
+    socket.on("messageRead", handleMessageRead);
+
+    return () => {
+      socket.off("newMessage", handleNewMessage);
+      socket.off("messageRead", handleMessageRead);
+    };
+  }, [user]);
 
   return (
     <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 overflow-y-auto hidden md:block">
@@ -80,7 +118,13 @@ const Sidebar = () => {
             }
           >
             <Icon size={18} className="flex-shrink-0" />
-            <span>{label}</span>
+            <span className="flex-1">{label}</span>
+            {/* Unread Message Badge */}
+            {label === "Messages" && unreadMessageCount > 0 && (
+              <span className="bg-blue-600 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center animate-pulse">
+                {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

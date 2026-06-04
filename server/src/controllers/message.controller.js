@@ -186,11 +186,12 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// ─── GET TOTAL UNREAD COUNT FOR NAVBAR ────────────────
+// ─── GET TOTAL UNREAD COUNT ────────────────
 export const getTotalUnreadCount = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Get all conversations where user is a participant
     const conversations = await prisma.conversation.findMany({
       where: {
         OR: [{ user1Id: userId }, { user2Id: userId }],
@@ -200,6 +201,7 @@ export const getTotalUnreadCount = async (req, res) => {
 
     const conversationIds = conversations.map(c => c.id);
 
+    // Count unread messages
     const totalUnread = await prisma.message.count({
       where: {
         conversationId: { in: conversationIds },

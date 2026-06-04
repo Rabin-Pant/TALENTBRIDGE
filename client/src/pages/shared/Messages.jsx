@@ -1,15 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Send, Search, MessageCircle, ArrowLeft,
-  Circle, Sparkles, Phone, Video
+  Sparkles
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
 import socket from "../../api/socket";
 import { useAuth } from "../../context/AuthContext";
-import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 
 const Avatar = ({ name, role, size = "md", online = false }) => {
   const sizes = { sm: "w-8 h-8 text-xs", md: "w-11 h-11 text-sm", lg: "w-14 h-14 text-lg" };
@@ -32,7 +32,7 @@ const Avatar = ({ name, role, size = "md", online = false }) => {
 
 const formatMessageTime = (date) => {
   const d = new Date(date);
-  if (isToday(d)) return format(d, "HH:mm");
+  if (isToday(d)) return format(d, "h:mm a");
   if (isYesterday(d)) return "Yesterday";
   return format(d, "MMM d");
 };
@@ -40,7 +40,7 @@ const formatMessageTime = (date) => {
 const formatConvTime = (date) => {
   if (!date) return "";
   const d = new Date(date);
-  if (isToday(d)) return format(d, "HH:mm");
+  if (isToday(d)) return format(d, "h:mm a");
   if (isYesterday(d)) return "Yesterday";
   return format(d, "MMM d");
 };
@@ -50,36 +50,39 @@ const Messages = () => {
   const { conversationId: urlConvId } = useParams();
   const navigate = useNavigate();
 
-  const [conversations, setConversations]     = useState([]);
-  const [activeConv, setActiveConv]           = useState(null);
-  const [messages, setMessages]               = useState([]);
-  const [text, setText]                       = useState("");
-  const [onlineUsers, setOnlineUsers]         = useState([]);
-  const [typing, setTyping]                   = useState(false);
-  const [search, setSearch]                   = useState("");
-  const [loading, setLoading]                 = useState(true);
+  const [conversations, setConversations] = useState([]);
+  const [activeConv, setActiveConv] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [typing, setTyping] = useState(false);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [visible, setVisible]                 = useState(false);
-  const [isMobileChat, setIsMobileChat]       = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [isMobileChat, setIsMobileChat] = useState(false);
 
-  const messagesEndRef   = useRef(null);
+  const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
   // Scroll to bottom
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
-  useEffect(() => { scrollToBottom(); }, [messages]);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   // Load conversations
   useEffect(() => {
     const fetchConversations = async () => {
       try {
+        setLoading(true);
         const res = await api.get("/messages/conversations");
-        setConversations(res.data.conversations);
+        setConversations(res.data.conversations || []);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to fetch conversations:", err);
       } finally {
         setLoading(false);
         setTimeout(() => setVisible(true), 100);
@@ -90,109 +93,182 @@ const Messages = () => {
 
   // Open conversation from URL param
   useEffect(() => {
-    if (urlConvId && conversations.length > 0) {
+    if (urlConvId && conversations.length > 0 && !activeConv) {
       const conv = conversations.find((c) => c.id === urlConvId);
-      if (conv) openConversation(conv);
+      if (conv) {
+        openConversation(conv);
+      }
     }
   }, [urlConvId, conversations]);
 
-  // Socket listeners
-  useEffect(() => {
-    socket.on("onlineUsers", (users) => setOnlineUsers(users));
-
-    socket.on("newMessage", (message) => {
-      if (message.conversationId === activeConv?.id) {
-        setMessages((prev) => {
-          const exists = prev.find((m) => m.id === message.id);
-          return exists ? prev : [...prev, message];
-        });
-      }
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === message.conversationId
-            ? { ...c, lastMessage: message, updatedAt: message.createdAt }
-            : c
-        ).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-      );
-    });
-
-    socket.on("userTyping", ({ conversationId, userId }) => {
-      if (conversationId === activeConv?.id && userId !== user.id) {
-        setTyping(true);
-      }
-    });
-
-    socket.on("userStopTyping", ({ conversationId }) => {
-      if (conversationId === activeConv?.id) setTyping(false);
-    });
-
-    return () => {
-      socket.off("onlineUsers");
-      socket.off("newMessage");
-      socket.off("userTyping");
-      socket.off("userStopTyping");
-    };
-  }, [activeConv?.id, user.id]);
-
   const openConversation = async (conv) => {
-    setActiveConv(conv);
-    setIsMobileChat(true);
-    setLoadingMessages(true);
-    try {
-      const res = await api.get(`/messages/${conv.id}`);
-      setMessages(res.data.messages);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingMessages(false);
-    }
+  if (!conv?.id) return;
+  
+  setActiveConv(conv);
+  setIsMobileChat(true);
+  setLoadingMessages(true);
+  
+  try {
+    const res = await api.get(`/messages/${conv.id}`);
+    setMessages(res.data.messages || []);
+    
+    // Mark messages as read via API
+    await api.put(`/messages/${conv.id}/read`);
+    
+    // Clear unread count for this conversation
+    setConversations(prev =>
+      prev.map(c =>
+        c.id === conv.id
+          ? { ...c, unreadCount: 0 }
+          : c
+      )
+    );
+    
+    // Update sidebar badge count
+    const unreadRes = await api.get("/messages/unread-count");
+    // You'll need to pass this to sidebar via a global state or context
+    // Or trigger a refetch in sidebar
+    
     navigate(`/messages/${conv.id}`, { replace: true });
-  };
+  } catch (err) {
+    console.error("Failed to fetch messages:", err);
+  } finally {
+    setLoadingMessages(false);
+  }
+};
 
-  const handleSend = () => {
-    if (!text.trim() || !activeConv) return;
+  const handleSend = useCallback(() => {
+    if (!text.trim() || !activeConv?.id) return;
+    
+    const messageContent = text.trim();
+    setText("");
+    
     socket.emit("sendMessage", {
       conversationId: activeConv.id,
-      content: text.trim(),
+      content: messageContent,
+      receiverId: activeConv.otherUser?.id,
     });
-    setText("");
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
     socket.emit("stopTyping", {
       conversationId: activeConv.id,
       receiverId: activeConv.otherUser?.id,
     });
-  };
+  }, [text, activeConv]);
 
-  const handleTyping = (e) => {
-    setText(e.target.value);
-    if (!activeConv) return;
+  const handleTyping = useCallback((e) => {
+    const value = e.target.value;
+    setText(value);
+    
+    if (!activeConv?.id) return;
+    
     socket.emit("typing", {
       conversationId: activeConv.id,
       receiverId: activeConv.otherUser?.id,
     });
-    clearTimeout(typingTimeoutRef.current);
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
     typingTimeoutRef.current = setTimeout(() => {
       socket.emit("stopTyping", {
         conversationId: activeConv.id,
         receiverId: activeConv.otherUser?.id,
       });
     }, 1500);
-  };
+  }, [activeConv]);
 
-  const filteredConvs = conversations.filter((c) =>
-    !search ||
-    c.otherUser?.fullName?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Socket listeners
+  useEffect(() => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleOnlineUsers = (users) => {
+      setOnlineUsers(users || []);
+    };
+
+    const handleNewMessage = (message) => {
+      if (!message?.conversationId) return;
+      
+      // Update messages if it's the active conversation
+      if (activeConv?.id === message.conversationId) {
+        setMessages((prev) => {
+          const exists = prev.some((m) => m.id === message.id);
+          if (exists) return prev;
+          return [...prev, message];
+        });
+      }
+      
+      // Update conversations list
+      setConversations((prev) => {
+        const updated = prev.map((conv) => {
+          if (conv.id === message.conversationId) {
+            return {
+              ...conv,
+              lastMessage: message,
+              updatedAt: message.createdAt,
+              // Only increment unread if not active conversation
+              unreadCount: activeConv?.id === message.conversationId 
+                ? (conv.unreadCount || 0) 
+                : (conv.unreadCount || 0) + 1,
+            };
+          }
+          return conv;
+        });
+        
+        // Sort by latest message
+        return updated.sort((a, b) => 
+          new Date(b.updatedAt) - new Date(a.updatedAt)
+        );
+      });
+    };
+
+    const handleUserTyping = ({ conversationId, userId }) => {
+      if (conversationId === activeConv?.id && userId !== user?.id) {
+        setTyping(true);
+      }
+    };
+
+    const handleUserStopTyping = ({ conversationId }) => {
+      if (conversationId === activeConv?.id) {
+        setTyping(false);
+      }
+    };
+
+    socket.on("onlineUsers", handleOnlineUsers);
+    socket.on("newMessage", handleNewMessage);
+    socket.on("userTyping", handleUserTyping);
+    socket.on("userStopTyping", handleUserStopTyping);
+
+    return () => {
+      socket.off("onlineUsers", handleOnlineUsers);
+      socket.off("newMessage", handleNewMessage);
+      socket.off("userTyping", handleUserTyping);
+      socket.off("userStopTyping", handleUserStopTyping);
+    };
+  }, [activeConv?.id, user?.id]);
 
   const isOnline = (userId) => onlineUsers.includes(userId);
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="relative w-16 h-16">
-        <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
-        <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
-      </div>
-    </div>
+  const filteredConvs = conversations.filter((conv) =>
+    !search ||
+    conv.otherUser?.fullName?.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="relative w-16 h-16">
+          <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
+          <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -202,7 +278,7 @@ const Messages = () => {
       <main className="md:ml-64 pt-16 h-[calc(100vh-4rem)]">
         <div className={`h-full flex transition-all duration-700 ${visible ? "opacity-100" : "opacity-0"}`}>
 
-          {/* ── Conversations List ── */}
+          {/* Conversations List */}
           <div className={`w-full md:w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 ${
             isMobileChat ? "hidden md:flex" : "flex"
           }`}>
@@ -232,44 +308,53 @@ const Messages = () => {
                   <p className="text-gray-500 text-sm font-medium">No conversations yet</p>
                   <p className="text-gray-400 text-xs mt-1">Connect with people and start messaging</p>
                 </div>
-              ) : filteredConvs.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => openConversation(conv)}
-                  className={`w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 text-left ${
-                    activeConv?.id === conv.id ? "bg-blue-50 border-l-4 border-l-blue-600" : ""
-                  }`}
-                >
-                  <Avatar
-                    name={conv.otherUser?.fullName}
-                    role={conv.otherUser?.role}
-                    size="md"
-                    online={isOnline(conv.otherUser?.id)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-gray-900 text-sm truncate">
-                        {conv.otherUser?.fullName}
-                      </p>
-                      <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                        {formatConvTime(conv.updatedAt)}
-                      </span>
+              ) : (
+                filteredConvs.map((conv) => (
+                  <button
+                    key={conv.id}
+                    onClick={() => openConversation(conv)}
+                    className={`w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 text-left ${
+                      activeConv?.id === conv.id ? "bg-blue-50 border-l-4 border-l-blue-600" : ""
+                    }`}
+                  >
+                    <Avatar
+                      name={conv.otherUser?.fullName}
+                      role={conv.otherUser?.role}
+                      size="md"
+                      online={isOnline(conv.otherUser?.id)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-gray-900 text-sm truncate">
+                          {conv.otherUser?.fullName}
+                        </p>
+                        <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                          {formatConvTime(conv.updatedAt)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <p className="text-xs text-gray-500 truncate flex-1">
+                          {conv.lastMessage
+                            ? conv.lastMessage.senderId === user?.id
+                              ? `You: ${conv.lastMessage.content}`
+                              : conv.lastMessage.content
+                            : "Start a conversation"
+                          }
+                        </p>
+                        {conv.unreadCount > 0 && (
+                          <span className="ml-2 bg-blue-600 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                            {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">
-                      {conv.lastMessage
-                        ? conv.lastMessage.senderId === user.id
-                          ? `You: ${conv.lastMessage.content}`
-                          : conv.lastMessage.content
-                        : "Start a conversation"
-                      }
-                    </p>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
-          {/* ── Chat Window ── */}
+          {/* Chat Window */}
           <div className={`flex-1 flex flex-col ${!isMobileChat ? "hidden md:flex" : "flex"}`}>
             {!activeConv ? (
               <div className="flex-1 flex items-center justify-center bg-gray-50">
@@ -286,7 +371,11 @@ const Messages = () => {
                 {/* Chat Header */}
                 <div className="flex items-center gap-3 px-5 py-4 bg-white border-b border-gray-200 shadow-sm">
                   <button
-                    onClick={() => { setIsMobileChat(false); navigate("/messages", { replace: true }); }}
+                    onClick={() => { 
+                      setIsMobileChat(false); 
+                      setActiveConv(null);
+                      navigate("/messages", { replace: true }); 
+                    }}
                     className="md:hidden p-1.5 hover:bg-gray-100 rounded-lg"
                   >
                     <ArrowLeft size={18} className="text-gray-600" />
@@ -303,7 +392,9 @@ const Messages = () => {
                       {isOnline(activeConv.otherUser?.id) ? (
                         <span className="text-green-500 font-medium">● Online</span>
                       ) : (
-                        activeConv.otherUser?.currentTitle || activeConv.otherUser?.companyName || activeConv.otherUser?.role
+                        activeConv.otherUser?.currentTitle || 
+                        activeConv.otherUser?.companyName || 
+                        activeConv.otherUser?.role
                       )}
                     </p>
                   </div>
@@ -321,9 +412,11 @@ const Messages = () => {
                     </div>
                   ) : (
                     <>
-                      {messages.map((msg, i) => {
-                        const isMine = msg.senderId === user.id;
-                        const showDate = i === 0 || new Date(messages[i-1].createdAt).toDateString() !== new Date(msg.createdAt).toDateString();
+                      {messages.map((msg, idx) => {
+                        const isMine = msg.senderId === user?.id;
+                        const showDate = idx === 0 || 
+                          new Date(messages[idx - 1]?.createdAt).toDateString() !== 
+                          new Date(msg.createdAt).toDateString();
 
                         return (
                           <div key={msg.id}>
@@ -340,7 +433,11 @@ const Messages = () => {
                             )}
                             <div className={`flex items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
                               {!isMine && (
-                                <Avatar name={msg.sender?.fullName} role={activeConv.otherUser?.role} size="sm" />
+                                <Avatar 
+                                  name={msg.sender?.fullName || activeConv.otherUser?.fullName} 
+                                  role={activeConv.otherUser?.role} 
+                                  size="sm" 
+                                />
                               )}
                               <div className={`max-w-xs lg:max-w-md ${isMine ? "items-end" : "items-start"} flex flex-col`}>
                                 <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
@@ -362,7 +459,11 @@ const Messages = () => {
                       {/* Typing Indicator */}
                       {typing && (
                         <div className="flex items-end gap-2">
-                          <Avatar name={activeConv.otherUser?.fullName} role={activeConv.otherUser?.role} size="sm" />
+                          <Avatar 
+                            name={activeConv.otherUser?.fullName} 
+                            role={activeConv.otherUser?.role} 
+                            size="sm" 
+                          />
                           <div className="bg-white border border-gray-100 shadow-sm rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1">
                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />

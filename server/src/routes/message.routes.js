@@ -14,5 +14,6 @@ router.get("/unread-count",                          getTotalUnreadCount);
 router.get("/:conversationId",                       getMessages);
 router.put("/:conversationId/read",                  markConversationRead);
 router.post("/:conversationId",                      sendMessage);
+router.get("/unread-count", getTotalUnreadCount);
 
 export default router;
