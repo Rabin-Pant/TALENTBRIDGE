@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import {
   Eye, EyeOff, Briefcase, User, Building2,
   MapPin, Phone, ChevronRight, ChevronLeft,
   Globe, Users, FileText, Upload, CheckCircle,
-  Hash, Mail
+  Hash, Mail, Sparkles
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
@@ -28,24 +28,24 @@ const StepIndicator = ({ step, total, labels }) => (
     {Array.from({ length: total }).map((_, i) => (
       <div key={i} className="flex items-center gap-1">
         <div className="flex flex-col items-center gap-1">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 transform ${
             i < step
-              ? "bg-blue-600 text-white"
+              ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white scale-105"
               : i === step
-              ? "bg-blue-600 text-white ring-4 ring-blue-100"
+              ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white ring-4 ring-blue-200 scale-110"
               : "bg-gray-200 text-gray-400"
           }`}>
             {i < step ? "✓" : i + 1}
           </div>
-          <span className={`text-xs whitespace-nowrap hidden sm:block ${
-            i === step ? "text-blue-600 font-medium" : "text-gray-400"
+          <span className={`text-xs whitespace-nowrap hidden sm:block transition-all duration-300 ${
+            i === step ? "text-blue-600 font-semibold" : "text-gray-400"
           }`}>
             {labels[i]}
           </span>
         </div>
         {i < total - 1 && (
-          <div className={`w-6 h-0.5 mb-4 transition-all duration-300 ${
-            i < step ? "bg-blue-600" : "bg-gray-200"
+          <div className={`w-8 h-0.5 mb-4 transition-all duration-500 ${
+            i < step ? "bg-gradient-to-r from-blue-600 to-blue-700" : "bg-gray-200"
           }`} />
         )}
       </div>
@@ -64,8 +64,13 @@ const Register = () => {
   const [companyDocFile, setCompanyDocFile] = useState(null);
   const [companyDocName, setCompanyDocName] = useState("");
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   const { register, handleSubmit, trigger, formState: { errors } } = useForm();
+
+  useEffect(() => {
+    setTimeout(() => setVisible(true), 100);
+  }, []);
 
   const seekerSteps  = ["Role", "Account", "Personal"];
   const employerSteps = ["Role", "Account", "Company", "Verify"];
@@ -97,27 +102,30 @@ const Register = () => {
     if (step === 2 && selectedRole === "EMPLOYER") fields = ["companyName", "industry", "companySize", "companyAddress", "companyPhone"];
     if (step === 3 && selectedRole === "EMPLOYER") fields = ["companyRegNumber"];
     const valid = await trigger(fields);
-    if (valid) setStep(step + 1);
+    if (valid) {
+      setStep(step + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleDocUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  try {
-    setUploadingDoc(true);
-    setError("");
-    const formData = new FormData();
-    formData.append("companyDocument", file);
-    const res = await api.post("/auth/upload-company-doc", formData);
-    setCompanyDocName(res.data.filename);
-    setCompanyDocFile(file.name);
-  } catch (err) {
-    console.error(err);
-    setError(err.response?.data?.message || "Failed to upload document. Make sure file is PDF, JPG or PNG under 10MB.");
-  } finally {
-    setUploadingDoc(false);
-  }
-};
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploadingDoc(true);
+      setError("");
+      const formData = new FormData();
+      formData.append("companyDocument", file);
+      const res = await api.post("/auth/upload-company-doc", formData);
+      setCompanyDocName(res.data.filename);
+      setCompanyDocFile(file.name);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Failed to upload document. Make sure file is PDF, JPG or PNG under 10MB.");
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
 
   const onSubmit = async (data) => {
     try {
@@ -166,15 +174,21 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: "1s" }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDelay: "2s" }}></div>
+      </div>
 
+      <div className={`w-full max-w-lg transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
         {/* Logo */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-xl mb-3">
-            <Briefcase className="text-white" size={24} />
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl mb-3 shadow-lg transform transition-transform duration-300 hover:scale-110">
+            <Briefcase className="text-white" size={28} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Create your account</h1>
           <p className="text-gray-500 mt-1 text-sm">Join TalentBridge today</p>
         </div>
 
@@ -182,9 +196,9 @@ const Register = () => {
         <StepIndicator step={step} total={totalSteps} labels={stepLabels} />
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 backdrop-blur-sm hover:shadow-2xl transition-all duration-300">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900">
+            <h2 className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
               {stepTitles[selectedRole][step]?.title}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -193,7 +207,7 @@ const Register = () => {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm animate-shake">
               {error}
             </div>
           )}
@@ -208,14 +222,14 @@ const Register = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("SEEKER")}
-                    className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all ${
+                    className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-300 transform hover:scale-105 ${
                       selectedRole === "SEEKER"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
+                        ? "border-blue-600 bg-gradient-to-br from-blue-50 to-white shadow-lg"
+                        : "border-gray-200 hover:border-blue-300 hover:shadow-md"
                     }`}
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                      selectedRole === "SEEKER" ? "bg-blue-600" : "bg-gray-100"
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                      selectedRole === "SEEKER" ? "bg-gradient-to-r from-blue-600 to-blue-700 shadow-md" : "bg-gray-100"
                     }`}>
                       <User size={28} className={selectedRole === "SEEKER" ? "text-white" : "text-gray-400"} />
                     </div>
@@ -226,7 +240,7 @@ const Register = () => {
                       <p className="text-xs text-gray-400 mt-1">Find your dream job</p>
                     </div>
                     {selectedRole === "SEEKER" && (
-                      <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                      <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center animate-bounce">
                         <span className="text-white text-xs">✓</span>
                       </div>
                     )}
@@ -236,14 +250,14 @@ const Register = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("EMPLOYER")}
-                    className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all ${
+                    className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-300 transform hover:scale-105 ${
                       selectedRole === "EMPLOYER"
-                        ? "border-green-600 bg-green-50"
-                        : "border-gray-200 hover:border-gray-300"
+                        ? "border-green-600 bg-gradient-to-br from-green-50 to-white shadow-lg"
+                        : "border-gray-200 hover:border-green-300 hover:shadow-md"
                     }`}
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                      selectedRole === "EMPLOYER" ? "bg-green-600" : "bg-gray-100"
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                      selectedRole === "EMPLOYER" ? "bg-gradient-to-r from-green-600 to-green-700 shadow-md" : "bg-gray-100"
                     }`}>
                       <Building2 size={28} className={selectedRole === "EMPLOYER" ? "text-white" : "text-gray-400"} />
                     </div>
@@ -254,7 +268,7 @@ const Register = () => {
                       <p className="text-xs text-gray-400 mt-1">Hire top talent</p>
                     </div>
                     {selectedRole === "EMPLOYER" && (
-                      <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
+                      <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center animate-bounce">
                         <span className="text-white text-xs">✓</span>
                       </div>
                     )}
@@ -264,9 +278,9 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md flex items-center justify-center gap-2"
                 >
-                  Continue <ChevronRight size={16} />
+                  Continue <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             )}
@@ -274,7 +288,7 @@ const Register = () => {
             {/* ── STEP 1: Account Details (Both) ── */}
             {step === 1 && (
               <div className="space-y-4">
-                <div>
+                <div className="group">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name *</label>
                   <input
                     type="text"
@@ -283,13 +297,13 @@ const Register = () => {
                       minLength: { value: 3, message: "At least 3 characters" },
                       pattern: { value: /^[a-zA-Z\s]+$/, message: "Letters only" },
                     })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 group-hover:border-blue-300"
                     placeholder="John Doe"
                   />
-                  {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName.message}</p>}
+                  {errors.fullName && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.fullName.message}</p>}
                 </div>
 
-                <div>
+                <div className="group">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     <Mail size={13} className="inline mr-1 text-gray-400" />Email Address *
                   </label>
@@ -302,13 +316,13 @@ const Register = () => {
                         message: "Must be @gmail.com, @yahoo.com etc.",
                       },
                     })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 group-hover:border-blue-300"
                     placeholder="you@gmail.com"
                   />
-                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+                  {errors.email && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.email.message}</p>}
                 </div>
 
-                <div>
+                <div className="group">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     <Phone size={13} className="inline mr-1 text-gray-400" />Phone Number *
                   </label>
@@ -325,16 +339,16 @@ const Register = () => {
                           message: "Must start with 97 or 98, 10 digits",
                         },
                       })}
-                      className="w-full pl-16 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-16 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 group-hover:border-blue-300"
                       placeholder="98XXXXXXXX"
                       maxLength={10}
                       onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }}
                     />
                   </div>
-                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
+                  {errors.phone && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.phone.message}</p>}
                 </div>
 
-                <div>
+                <div className="group">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Password *</label>
                   <div className="relative">
                     <input
@@ -347,28 +361,35 @@ const Register = () => {
                           message: "Must contain letters and numbers",
                         },
                       })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 transition-all duration-200 group-hover:border-blue-300"
                       placeholder="Min 6 chars with letters & numbers"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-all duration-200 hover:scale-110"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+                  {errors.password && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.password.message}</p>}
+                </div>
+
+                {/* Password Strength Indicator */}
+                <div className="flex gap-1 mt-1">
+                  <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-300" style={{ width: "0%" }}></div>
+                  </div>
                 </div>
 
                 <div className="flex gap-3 mt-2">
                   <button type="button" onClick={() => setStep(0)}
-                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2">
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 transform hover:scale-105">
                     <ChevronLeft size={16} /> Back
                   </button>
                   <button type="button" onClick={handleNext}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 text-white ${
-                      selectedRole === "EMPLOYER" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 text-white transition-all duration-200 transform hover:scale-105 shadow-md ${
+                      selectedRole === "EMPLOYER" ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                     }`}>
                     Next <ChevronRight size={16} />
                   </button>
@@ -380,23 +401,23 @@ const Register = () => {
             {step === 2 && selectedRole === "SEEKER" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Current Title</label>
                     <input
                       type="text"
                       {...register("currentTitle", {
                         pattern: { value: /^[a-zA-Z\s]+$/, message: "Letters only" },
                       })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 group-hover:border-blue-300"
                       placeholder="e.g. Developer"
                     />
-                    {errors.currentTitle && <p className="text-red-500 text-xs mt-1">{errors.currentTitle.message}</p>}
+                    {errors.currentTitle && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.currentTitle.message}</p>}
                   </div>
-                  <div>
+                  <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Experience Level</label>
                     <select
                       {...register("experienceLevel")}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 group-hover:border-blue-300"
                     >
                       <option value="">Select level</option>
                       {EXPERIENCE_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -404,7 +425,7 @@ const Register = () => {
                   </div>
                 </div>
 
-                <div>
+                <div className="group">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     <MapPin size={13} className="inline mr-1 text-gray-400" />Location *
                   </label>
@@ -415,20 +436,27 @@ const Register = () => {
                       minLength: { value: 3, message: "Too short" },
                       pattern: { value: /^[a-zA-Z\s,.-]+$/, message: "Letters and commas only" },
                     })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 group-hover:border-blue-300"
                     placeholder="e.g. Kathmandu, Nepal"
                   />
-                  {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location.message}</p>}
+                  {errors.location && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.location.message}</p>}
                 </div>
 
                 <div className="flex gap-3 mt-2">
                   <button type="button" onClick={() => setStep(1)}
-                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2">
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 transform hover:scale-105">
                     <ChevronLeft size={16} /> Back
                   </button>
                   <button type="submit" disabled={loading}
-                    className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
-                    {loading ? "Creating..." : "Create Account"}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2.5 rounded-xl text-sm font-medium hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all duration-200 flex items-center justify-center gap-2 transform hover:scale-105 shadow-md">
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Creating...
+                      </div>
+                    ) : (
+                      "Create Account"
+                    )}
                   </button>
                 </div>
               </div>
@@ -438,58 +466,58 @@ const Register = () => {
             {step === 2 && selectedRole === "EMPLOYER" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
+                  <div className="col-span-2 group">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       <Building2 size={13} className="inline mr-1 text-gray-400" />Company Name *
                     </label>
                     <input
                       type="text"
                       {...register("companyName", { required: "Required" })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 group-hover:border-green-300"
                       placeholder="e.g. Acme Technologies Pvt. Ltd."
                     />
-                    {errors.companyName && <p className="text-red-500 text-xs mt-1">{errors.companyName.message}</p>}
+                    {errors.companyName && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.companyName.message}</p>}
                   </div>
 
-                  <div>
+                  <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Industry *</label>
                     <select
                       {...register("industry", { required: "Required" })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 group-hover:border-green-300"
                     >
                       <option value="">Select industry</option>
                       {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
                     </select>
-                    {errors.industry && <p className="text-red-500 text-xs mt-1">{errors.industry.message}</p>}
+                    {errors.industry && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.industry.message}</p>}
                   </div>
 
-                  <div>
+                  <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       <Users size={13} className="inline mr-1 text-gray-400" />Company Size *
                     </label>
                     <select
                       {...register("companySize", { required: "Required" })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 group-hover:border-green-300"
                     >
                       <option value="">Select size</option>
                       {COMPANY_SIZES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
-                    {errors.companySize && <p className="text-red-500 text-xs mt-1">{errors.companySize.message}</p>}
+                    {errors.companySize && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.companySize.message}</p>}
                   </div>
 
-                  <div>
+                  <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       <Globe size={13} className="inline mr-1 text-gray-400" />Website
                     </label>
                     <input
                       type="text"
                       {...register("companyWebsite")}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 group-hover:border-green-300"
                       placeholder="https://company.com"
                     />
                   </div>
 
-                  <div>
+                  <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       <Phone size={13} className="inline mr-1 text-gray-400" />Company Phone *
                     </label>
@@ -499,14 +527,14 @@ const Register = () => {
                         required: "Required",
                         pattern: { value: /^[0-9]{7,15}$/, message: "Invalid phone" },
                       })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 group-hover:border-green-300"
                       placeholder="01-XXXXXXX"
                       onKeyPress={(e) => { if (!/[0-9-]/.test(e.key)) e.preventDefault(); }}
                     />
-                    {errors.companyPhone && <p className="text-red-500 text-xs mt-1">{errors.companyPhone.message}</p>}
+                    {errors.companyPhone && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.companyPhone.message}</p>}
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 group">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       <MapPin size={13} className="inline mr-1 text-gray-400" />Company Address *
                     </label>
@@ -516,18 +544,18 @@ const Register = () => {
                         required: "Required",
                         minLength: { value: 5, message: "Too short" },
                       })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 group-hover:border-green-300"
                       placeholder="e.g. Hattisar, Kathmandu 44600"
                     />
-                    {errors.companyAddress && <p className="text-red-500 text-xs mt-1">{errors.companyAddress.message}</p>}
+                    {errors.companyAddress && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.companyAddress.message}</p>}
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 group">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Company Description</label>
                     <textarea
                       {...register("companyDescription")}
                       rows={3}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none transition-all duration-200 group-hover:border-green-300"
                       placeholder="Briefly describe your company, what you do..."
                     />
                   </div>
@@ -535,11 +563,11 @@ const Register = () => {
 
                 <div className="flex gap-3 mt-2">
                   <button type="button" onClick={() => setStep(1)}
-                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2">
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 transform hover:scale-105">
                     <ChevronLeft size={16} /> Back
                   </button>
                   <button type="button" onClick={handleNext}
-                    className="flex-1 bg-green-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-green-700 flex items-center justify-center gap-2">
+                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2.5 rounded-xl text-sm font-medium hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center gap-2 transform hover:scale-105 shadow-md">
                     Next <ChevronRight size={16} />
                   </button>
                 </div>
@@ -549,9 +577,7 @@ const Register = () => {
             {/* ── STEP 3 EMPLOYER: Verification ── */}
             {step === 3 && selectedRole === "EMPLOYER" && (
               <div className="space-y-5">
-
-                {/* Info Banner */}
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3 animate-pulse">
                   <FileText size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-blue-800">Verification Required</p>
@@ -563,8 +589,7 @@ const Register = () => {
                   </div>
                 </div>
 
-                {/* Registration Number */}
-                <div>
+                <div className="group">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     <Hash size={13} className="inline mr-1 text-gray-400" />Company Registration Number *
                   </label>
@@ -574,25 +599,24 @@ const Register = () => {
                       required: "Registration number is required",
                       minLength: { value: 5, message: "Too short" },
                     })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 group-hover:border-green-300"
                     placeholder="e.g. 123456/078/079 or PAN-XXXXXXXXX"
                   />
-                  {errors.companyRegNumber && <p className="text-red-500 text-xs mt-1">{errors.companyRegNumber.message}</p>}
+                  {errors.companyRegNumber && <p className="text-red-500 text-xs mt-1 animate-fadeIn">{errors.companyRegNumber.message}</p>}
                 </div>
 
-                {/* Document Upload */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Company Document / ID Card *
                   </label>
-                  <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-colors ${
+                  <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all duration-300 transform hover:scale-105 ${
                     companyDocFile
-                      ? "border-green-400 bg-green-50"
-                      : "border-gray-200 hover:border-green-400 hover:bg-green-50"
+                      ? "border-green-400 bg-gradient-to-br from-green-50 to-emerald-50"
+                      : "border-gray-200 hover:border-green-400 hover:bg-gradient-to-br hover:from-green-50 hover:to-transparent"
                   }`}>
                     {companyDocFile ? (
                       <>
-                        <CheckCircle size={28} className="text-green-500" />
+                        <CheckCircle size={32} className="text-green-500 animate-bounce" />
                         <div className="text-center">
                           <p className="text-sm font-medium text-green-700">Document uploaded</p>
                           <p className="text-xs text-green-600 mt-0.5">{companyDocFile}</p>
@@ -600,7 +624,7 @@ const Register = () => {
                       </>
                     ) : (
                       <>
-                        <Upload size={28} className="text-gray-400" />
+                        <Upload size={32} className="text-gray-400 transition-all duration-300 group-hover:scale-110" />
                         <div className="text-center">
                           <p className="text-sm font-medium text-gray-600">
                             {uploadingDoc ? "Uploading..." : "Click to upload document"}
@@ -620,21 +644,24 @@ const Register = () => {
                     />
                   </label>
                   {!companyDocFile && (
-                    <p className="text-amber-500 text-xs mt-1">⚠ Document upload is strongly recommended for faster approval</p>
+                    <p className="text-amber-500 text-xs mt-1 flex items-center gap-1 animate-pulse">
+                      <Sparkles size={10} /> Document upload is strongly recommended for faster approval
+                    </p>
                   )}
                 </div>
 
-                {/* What happens next */}
-                <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">What happens next?</p>
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 space-y-2">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles size={12} /> What happens next?
+                  </p>
                   {[
                     "Your application is submitted for review",
                     "Admin verifies your company details and document",
                     "You receive an email notification once approved",
                     "You can then log in and start posting jobs",
                   ].map((text, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                    <div key={i} className="flex items-center gap-2 animate-fadeIn" style={{ animationDelay: `${i * 100}ms` }}>
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-r from-green-100 to-green-200 text-green-600 flex items-center justify-center flex-shrink-0 text-xs font-bold">
                         {i + 1}
                       </div>
                       <p className="text-xs text-gray-600">{text}</p>
@@ -644,12 +671,19 @@ const Register = () => {
 
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setStep(2)}
-                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2">
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 transform hover:scale-105">
                     <ChevronLeft size={16} /> Back
                   </button>
                   <button type="submit" disabled={loading || uploadingDoc}
-                    className="flex-1 bg-green-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2">
-                    {loading ? "Submitting..." : "Submit for Approval"}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2.5 rounded-xl text-sm font-medium hover:from-green-700 hover:to-green-800 disabled:opacity-50 transition-all duration-200 flex items-center justify-center gap-2 transform hover:scale-105 shadow-md">
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Submitting...
+                      </div>
+                    ) : (
+                      "Submit for Approval"
+                    )}
                   </button>
                 </div>
               </div>
@@ -658,10 +692,48 @@ const Register = () => {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Already have an account?{" "}
-            <Link to="/login" className="text-blue-600 font-medium hover:underline">Sign in</Link>
+            <Link to="/login" className="text-blue-600 font-medium hover:text-blue-700 hover:underline transition-all duration-200">
+              Sign in
+            </Link>
           </p>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-5px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+        
+        @keyframes bounce {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.2); }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        .animate-shake {
+          animation: shake 0.3s ease-in-out;
+        }
+        
+        .animate-bounce {
+          animation: bounce 0.5s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 };
