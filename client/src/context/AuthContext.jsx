@@ -1,20 +1,22 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import api from "../api/axios";
+import { connectSocket, disconnectSocket } from "../api/socket";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [user, setUser]       = useState(null);
+  const [token, setToken]     = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
       const savedToken = localStorage.getItem("token");
-      const savedUser = localStorage.getItem("user");
+      const savedUser  = localStorage.getItem("user");
       if (savedToken && savedUser) {
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
+        connectSocket(savedToken);
       }
       setLoading(false);
     };
@@ -26,6 +28,7 @@ export const AuthProvider = ({ children }) => {
     setToken(userToken);
     localStorage.setItem("token", userToken);
     localStorage.setItem("user", JSON.stringify(userData));
+    connectSocket(userToken);
   };
 
   const logout = () => {
@@ -33,6 +36,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    disconnectSocket();
     window.location.href = "/login";
   };
 
@@ -44,5 +48,4 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-
 export default AuthContext;
