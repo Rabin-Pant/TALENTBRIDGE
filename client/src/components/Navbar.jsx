@@ -49,7 +49,6 @@ const Navbar = () => {
     }
 
     const handleNewNotification = () => {
-      // Increment unread count when new notification arrives
       setUnreadCount(prev => prev + 1);
     };
 
@@ -84,7 +83,9 @@ const Navbar = () => {
               className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          <SearchDropdown isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+          {searchOpen && (
+            <SearchDropdown isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+          )}
         </div>
 
         {/* Right side */}
