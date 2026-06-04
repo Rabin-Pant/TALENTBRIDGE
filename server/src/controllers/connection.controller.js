@@ -239,3 +239,25 @@ export const getSuggestions = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getPublicProfile = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.userId },
+      select: {
+        id: true, fullName: true, role: true,
+        currentTitle: true, bio: true, location: true,
+        experienceLevel: true, skills: true,
+        resumeFileName: true, education: true,
+        workExperience: true, companyName: true,
+        companyWebsite: true, companySize: true,
+        industry: true, companyDescription: true,
+      },
+    });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

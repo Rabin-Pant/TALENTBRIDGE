@@ -7,6 +7,7 @@ import {
   getFeed, createPost, deletePost,
   toggleLike, addComment, getComments, getUserPosts,
 } from "../controllers/feed.controller.js";
+import { getPublicProfile } from "../controllers/connection.controller.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,5 +39,5 @@ router.post("/:id/like",           toggleLike);
 router.post("/:id/comment",        addComment);
 router.get("/:id/comments",        getComments);
 router.get("/user/:userId",        getUserPosts);
-
+router.get("/profile/:userId", getPublicProfile);
 export default router;
