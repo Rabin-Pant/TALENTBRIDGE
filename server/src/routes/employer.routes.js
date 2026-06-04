@@ -1,8 +1,6 @@
 import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
-import roleMiddleware from "../middleware/role.middleware.js";
 import {
-  getDashboard,
   getMyJobs,
   createJob,
   updateJob,
@@ -13,22 +11,30 @@ import {
   getProfile,
   updateProfile,
   getNotifications,
+  markNotificationsRead,
+  markNotificationRead,
+  deleteNotification,
+  deleteAllNotifications,
+  markAllNotificationsRead,
 } from "../controllers/employer.controller.js";
 
 const router = express.Router();
+router.use(authMiddleware);
 
-router.use(authMiddleware, roleMiddleware("EMPLOYER"));
-
-router.get("/dashboard", getDashboard);
 router.get("/jobs", getMyJobs);
 router.post("/jobs", createJob);
 router.put("/jobs/:id", updateJob);
 router.delete("/jobs/:id", deleteJob);
-router.get("/applications", getApplications);
-router.get("/applications/:id", getApplicationById);
+router.get("/applicants", getApplications);
+router.get("/applicants/:id", getApplicationById);
 router.put("/applications/:id/status", updateApplicationStatus);
 router.get("/profile", getProfile);
 router.put("/profile", updateProfile);
 router.get("/notifications", getNotifications);
+router.put("/notifications/mark-read", markNotificationsRead);
+router.put("/notifications/:notificationId/read", markNotificationRead);
+router.delete("/notifications/:notificationId", deleteNotification);
+router.delete("/notifications", deleteAllNotifications);
+router.put("/notifications/read-all", markAllNotificationsRead);
 
 export default router;

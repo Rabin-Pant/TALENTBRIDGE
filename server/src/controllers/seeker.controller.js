@@ -1,30 +1,5 @@
 import prisma from "../config/db.js";
-
-// ─── DASHBOARD ───────────────────────────────────────
-export const getDashboard = async (req, res) => {
-  try {
-    const seekerId = req.user.id;
-
-    const [totalApplications, pending, shortlisted, accepted, recentApplications] =
-      await Promise.all([
-        prisma.application.count({ where: { applicantId: seekerId } }),
-        prisma.application.count({ where: { applicantId: seekerId, status: "PENDING" } }),
-        prisma.application.count({ where: { applicantId: seekerId, status: "SHORTLISTED" } }),
-        prisma.application.count({ where: { applicantId: seekerId, status: "ACCEPTED" } }),
-        prisma.application.findMany({
-          where: { applicantId: seekerId },
-          take: 5,
-          orderBy: { appliedAt: "desc" },
-          include: { job: { select: { title: true, company: true, location: true } } },
-        }),
-      ]);
-
-    res.json({ totalApplications, pending, shortlisted, accepted, recentApplications });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+import { io } from "../../server.js";
 
 // ─── BROWSE JOBS ─────────────────────────────────────
 export const getJobs = async (req, res) => {
@@ -133,8 +108,8 @@ export const applyToJob = async (req, res) => {
       },
     });
 
-    // Notify employer
-    await prisma.notification.create({
+    // Create notification in database
+    const notification = await prisma.notification.create({
       data: {
         recipientId: job.employerId,
         title: "New Application",
@@ -143,6 +118,9 @@ export const applyToJob = async (req, res) => {
         link: `/employer/applications/${application.id}`,
       },
     });
+
+    // Emit real-time notification via socket
+    io.to(job.employerId).emit("newNotification", notification);
 
     res.status(201).json({ message: "Application submitted successfully", application });
   } catch (err) {
@@ -291,13 +269,22 @@ export const getNotifications = async (req, res) => {
 
     const unreadCount = notifications.filter((n) => !n.read).length;
 
-    // Mark all as read
+    res.json({ notifications, unreadCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── MARK NOTIFICATIONS AS READ ──────────────────────
+export const markNotificationsRead = async (req, res) => {
+  try {
     await prisma.notification.updateMany({
       where: { recipientId: req.user.id, read: false },
       data: { read: true },
     });
-
-    res.json({ notifications, unreadCount });
+    
+    res.json({ message: "Notifications marked as read" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -313,6 +300,88 @@ export const updateContact = async (req, res) => {
       select: { id: true, phone: true },
     });
     res.json({ message: "Contact updated", user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── MARK SINGLE NOTIFICATION AS READ ────────────────
+export const markNotificationRead = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user.id;
+
+    const notification = await prisma.notification.findFirst({
+      where: { id: notificationId, recipientId: userId },
+    });
+
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    await prisma.notification.update({
+      where: { id: notificationId },
+      data: { read: true },
+    });
+
+    res.json({ message: "Notification marked as read" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── DELETE SINGLE NOTIFICATION ──────────────────────
+export const deleteNotification = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user.id;
+
+    const notification = await prisma.notification.findFirst({
+      where: { id: notificationId, recipientId: userId },
+    });
+
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    await prisma.notification.delete({ where: { id: notificationId } });
+
+    res.json({ message: "Notification deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── DELETE ALL NOTIFICATIONS ────────────────────────
+export const deleteAllNotifications = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    await prisma.notification.deleteMany({
+      where: { recipientId: userId },
+    });
+
+    res.json({ message: "All notifications deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── MARK ALL NOTIFICATIONS AS READ ──────────────────
+export const markAllNotificationsRead = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    await prisma.notification.updateMany({
+      where: { recipientId: userId, read: false },
+      data: { read: true },
+    });
+
+    res.json({ message: "All notifications marked as read" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

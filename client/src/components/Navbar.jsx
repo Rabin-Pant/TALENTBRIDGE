@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import SearchDropdown from "./SearchDropdown";
+import socket from "../api/socket";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -26,16 +27,38 @@ const Navbar = () => {
       ? "/employer/profile"
       : null;
 
+  // Fetch unread count
+  const fetchUnreadCount = async () => {
+    try {
+      if (!notifPath) return;
+      const res = await api.get(notifPath);
+      setUnreadCount(res.data.unreadCount || 0);
+    } catch (err) {
+      console.error("Failed to fetch unread count:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchUnread = async () => {
-      try {
-        if (!notifPath) return;
-        const res = await api.get(notifPath.replace("/notifications", "/notifications"));
-        setUnreadCount(res.data.unreadCount || 0);
-      } catch {}
-    };
-    fetchUnread();
+    fetchUnreadCount();
   }, [notifPath]);
+
+  // Socket listener for real-time notifications
+  useEffect(() => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleNewNotification = () => {
+      // Increment unread count when new notification arrives
+      setUnreadCount(prev => prev + 1);
+    };
+
+    socket.on("newNotification", handleNewNotification);
+
+    return () => {
+      socket.off("newNotification", handleNewNotification);
+    };
+  }, []);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 h-16">

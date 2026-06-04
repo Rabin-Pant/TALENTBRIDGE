@@ -11,6 +11,7 @@ const SearchDropdown = ({ isOpen, onClose }) => {
   const [connecting, setConnecting] = useState({});
   const { user } = useAuth();
   const dropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -38,7 +39,6 @@ const SearchDropdown = ({ isOpen, onClose }) => {
       setLoading(true);
       try {
         const res = await api.get(`/search/users?q=${encodeURIComponent(searchTerm)}`);
-        // Filter out current user and admin users
         const filtered = res.data.users.filter(u => 
           u.id !== user?.id && u.role !== "ADMIN"
         );
@@ -59,7 +59,6 @@ const SearchDropdown = ({ isOpen, onClose }) => {
     setConnecting(prev => ({ ...prev, [targetId]: true }));
     try {
       await api.post("/connections", { receiverId: targetId });
-      // Update the result to show pending status
       setResults(prev =>
         prev.map(u =>
           u.id === targetId
@@ -71,6 +70,30 @@ const SearchDropdown = ({ isOpen, onClose }) => {
       console.error("Connection error:", err);
     } finally {
       setConnecting(prev => ({ ...prev, [targetId]: false }));
+    }
+  };
+
+  const handleAccept = async (connectionId, userId) => {
+    try {
+      await api.put(`/connections/${connectionId}/respond`, { action: "ACCEPT" });
+      setResults(prev =>
+        prev.map(u =>
+          u.id === userId
+            ? { ...u, connectionStatus: "ACCEPTED" }
+            : u
+        )
+      );
+    } catch (err) {
+      console.error("Accept error:", err);
+    }
+  };
+
+  const handleDecline = async (connectionId, userId) => {
+    try {
+      await api.put(`/connections/${connectionId}/respond`, { action: "DECLINE" });
+      setResults(prev => prev.filter(u => u.id !== userId));
+    } catch (err) {
+      console.error("Decline error:", err);
     }
   };
 
@@ -94,29 +117,13 @@ const SearchDropdown = ({ isOpen, onClose }) => {
         return (
           <div className="flex gap-1">
             <button
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                await api.put(`/connections/${targetUser.connectionId}/respond`, { action: "ACCEPT" });
-                setResults(prev =>
-                  prev.map(u =>
-                    u.id === targetUser.id
-                      ? { ...u, connectionStatus: "ACCEPTED" }
-                      : u
-                  )
-                );
-              }}
+              onClick={() => handleAccept(targetUser.connectionId, targetUser.id)}
               className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
             >
               Accept
             </button>
             <button
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                await api.put(`/connections/${targetUser.connectionId}/respond`, { action: "DECLINE" });
-                setResults(prev => prev.filter(u => u.id !== targetUser.id));
-              }}
+              onClick={() => handleDecline(targetUser.connectionId, targetUser.id)}
               className="px-3 py-1 border border-gray-300 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50"
             >
               Decline
@@ -128,11 +135,7 @@ const SearchDropdown = ({ isOpen, onClose }) => {
 
     return (
       <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleConnect(targetUser.id);
-        }}
+        onClick={() => handleConnect(targetUser.id)}
         disabled={connecting[targetUser.id]}
         className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50"
       >
@@ -153,6 +156,7 @@ const SearchDropdown = ({ isOpen, onClose }) => {
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Search for people by name, email, or company..."
             value={searchTerm}
@@ -188,11 +192,12 @@ const SearchDropdown = ({ isOpen, onClose }) => {
           </div>
         ) : (
           results.map((result) => (
-            <Link
+            <div
               key={result.id}
-              to={`/profile/${result.id}`}
-              onClick={onClose}
-              className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors"
+              className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
+              onClick={() => {
+                window.location.href = `/profile/${result.id}`;
+              }}
             >
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-white font-bold text-sm">
@@ -208,8 +213,10 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                   <p className="text-xs text-gray-400 truncate">{result.location}</p>
                 )}
               </div>
-              <ConnectionButton targetUser={result} />
-            </Link>
+              <div onClick={(e) => e.stopPropagation()}>
+                <ConnectionButton targetUser={result} />
+              </div>
+            </div>
           ))
         )}
       </div>

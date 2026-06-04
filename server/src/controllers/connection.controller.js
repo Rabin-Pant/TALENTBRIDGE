@@ -1,4 +1,5 @@
 import prisma from "../config/db.js";
+import { io } from "../../server.js";
 
 // ─── SEND CONNECTION REQUEST ──────────────────────────
 export const sendRequest = async (req, res) => {
@@ -10,7 +11,6 @@ export const sendRequest = async (req, res) => {
       return res.status(400).json({ message: "Cannot connect with yourself" });
     }
 
-    // Check if already connected
     const existing = await prisma.connection.findFirst({
       where: {
         OR: [
@@ -28,21 +28,22 @@ export const sendRequest = async (req, res) => {
       data: { senderId, receiverId },
     });
 
-    // Notify receiver
     const sender = await prisma.user.findUnique({
       where: { id: senderId },
       select: { fullName: true },
     });
 
-    await prisma.notification.create({
+    // Create notification in database
+    const notification = await prisma.notification.create({
       data: {
         recipientId: receiverId,
         title: "New Connection Request",
         message: `${sender.fullName} sent you a connection request`,
         type: "SYSTEM",
-        link: `/network`,
+        link: "/network",
       },
     });
+    io.to(receiverId).emit("newNotification", notification);
 
     res.status(201).json({ message: "Connection request sent", connection });
   } catch (err) {
@@ -67,22 +68,24 @@ export const respondRequest = async (req, res) => {
       data: { status: action === "ACCEPT" ? "ACCEPTED" : "DECLINED" },
     });
 
-    if (action === "ACCEPT") {
-      const receiver = await prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: { fullName: true },
-      });
+   if (action === "ACCEPT") {
+  const receiver = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { fullName: true },
+  });
 
-      await prisma.notification.create({
-        data: {
-          recipientId: connection.senderId,
-          title: "Connection Accepted!",
-          message: `${receiver.fullName} accepted your connection request`,
-          type: "SYSTEM",
-          link: `/network`,
-        },
-      });
-    }
+  // Create notification in database
+  const notification = await prisma.notification.create({
+    data: {
+      recipientId: connection.senderId,
+      title: "Connection Accepted!",
+      message: `${receiver.fullName} accepted your connection request`,
+      type: "SYSTEM",
+      link: "/network",
+    },
+  });
+  io.to(connection.senderId).emit("newNotification", notification);
+}
 
     res.json({ message: `Request ${action === "ACCEPT" ? "accepted" : "declined"}`, connection: updated });
   } catch (err) {

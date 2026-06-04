@@ -1,4 +1,5 @@
 import prisma from "../config/db.js";
+import { io } from "../../server.js";
 import path from "path";
 
 // ─── GET FEED ────────────────────────────────────────
@@ -151,15 +152,20 @@ export const toggleLike = async (req, res) => {
     const post = await prisma.post.findUnique({ where: { id } });
     if (post && post.authorId !== userId) {
       const liker = await prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
-      await prisma.notification.create({
+      
+      // Create notification in database
+      const notification = await prisma.notification.create({
         data: {
           recipientId: post.authorId,
           title: "Someone liked your post",
           message: `${liker.fullName} liked your post`,
-          type: "SYSTEM",
+          type: "LIKE",
           link: `/home`,
         },
       });
+      
+      // Emit real-time notification via socket
+      io.to(post.authorId).emit("newNotification", notification);
     }
 
     res.json({ liked: true });
@@ -189,15 +195,19 @@ export const addComment = async (req, res) => {
     // Notify post author
     const post = await prisma.post.findUnique({ where: { id } });
     if (post && post.authorId !== req.user.id) {
-      await prisma.notification.create({
+      // Create notification in database
+      const notification = await prisma.notification.create({
         data: {
           recipientId: post.authorId,
           title: "New comment on your post",
-          message: `${comment.author.fullName} commented on your post`,
-          type: "SYSTEM",
+          message: `${comment.author.fullName} commented: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+          type: "COMMENT",
           link: `/home`,
         },
       });
+      
+      // Emit real-time notification via socket
+      io.to(post.authorId).emit("newNotification", notification);
     }
 
     res.status(201).json({ comment });
