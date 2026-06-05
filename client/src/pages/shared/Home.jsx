@@ -443,7 +443,7 @@ const PostCard = ({ post, onDelete }) => {
 };
 
 const SuggestedUser = ({ user: u, onConnect }) => (
-  <div className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 rounded-lg px-2 transition-all duration-200">
+  <div className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0 hover:bg-white/30 rounded-lg px-2 transition-all duration-200 group">
     <Link to={`/profile/${u.id}`} className="transition-transform duration-300 hover:scale-105">
       <Avatar name={u.fullName} role={u.role} size="sm" />
     </Link>
@@ -536,6 +536,7 @@ const Home = () => {
         <div className={`max-w-5xl mx-auto px-4 py-6 transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
           <div className="grid lg:grid-cols-3 gap-6">
 
+            {/* Left Column - Feed */}
             <div className="lg:col-span-2 space-y-4">
               <CreatePost onPost={handleNewPost} />
 
@@ -564,66 +565,111 @@ const Home = () => {
               )}
             </div>
 
-            <div className="space-y-4">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
-                <div className="h-20 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-                <div className="px-4 pb-4">
-                  <div className="-mt-8 mb-3 transition-transform duration-300 hover:scale-105">
+            {/* Right Column - Glass Morphism Sidebar */}
+            <div className="space-y-4 relative">
+              {/* Animated background for the entire sidebar */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float-slow"></div>
+                <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float-slow-delayed"></div>
+              </div>
+
+              {/* Profile Card with Glass Morphism */}
+              <div className="relative group backdrop-blur-xl bg-white/30 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 border border-white/20">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative h-24 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 blur-2xl opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+                  <div className="absolute top-4 left-4 w-1 h-1 bg-white rounded-full animate-particle"></div>
+                  <div className="absolute bottom-4 right-8 w-1.5 h-1.5 bg-white rounded-full animate-particle-delayed"></div>
+                  <div className="absolute top-8 right-12 w-1 h-1 bg-white rounded-full animate-particle-slow"></div>
+                </div>
+                
+                <div className="relative px-5 pb-5">
+                  <div className="-mt-10 mb-3 transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
                     <Avatar name={user?.fullName} role={user?.role} size="lg" />
                   </div>
                   <Link to={user?.role === "SEEKER" ? "/seeker/profile" : "/employer/profile"}>
-                    <h3 className="font-semibold text-gray-900 hover:text-blue-600 transition-colors duration-200">{user?.fullName}</h3>
+                    <h3 className="font-semibold text-lg text-gray-800 group-hover:text-blue-600 transition-all duration-300">
+                      {user?.fullName}
+                    </h3>
                   </Link>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {user?.currentTitle || user?.companyName || user?.role}
                   </p>
-                  <Link
-                    to="/network"
-                    className="mt-3 block text-center text-xs text-blue-600 font-medium hover:text-blue-700 hover:underline transition-all duration-200"
-                  >
-                    View my network →
-                  </Link>
+                  <div className="mt-3 flex items-center justify-between">
+                    <Link
+                      to="/network"
+                      className="text-xs text-blue-600 font-medium hover:text-blue-700 transition-all duration-200 inline-flex items-center gap-1 group-hover:gap-2"
+                    >
+                      View my network <span className="text-base group-hover:translate-x-1 transition-transform">→</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
 
+              {/* Suggestions Card with Glass Morphism */}
               {suggestions.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 hover:shadow-xl transition-all duration-300">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-gray-900 text-sm">People you may know</h3>
-                    <Link to="/network" className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors duration-200">
+                <div className="relative backdrop-blur-xl bg-white/30 rounded-2xl shadow-xl p-5 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-white/20">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+                      <h3 className="font-semibold text-gray-800 text-sm">People you may know</h3>
+                    </div>
+                    <Link to="/network" className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-all duration-200">
                       See all
                     </Link>
                   </div>
-                  {suggestions.slice(0, 4).map((u) => (
-                    <SuggestedUser key={u.id} user={u} onConnect={handleConnect} />
-                  ))}
+                  <div className="space-y-2">
+                    {suggestions.slice(0, 4).map((u) => (
+                      <SuggestedUser key={u.id} user={u} onConnect={handleConnect} />
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 hover:shadow-xl transition-all duration-300">
-                <h3 className="font-semibold text-gray-900 text-sm mb-3">Quick Access</h3>
+              {/* Quick Access Card with Glass Morphism */}
+              <div className="relative backdrop-blur-xl bg-white/30 rounded-2xl shadow-xl p-5 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-white/20">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+                  <h3 className="font-semibold text-gray-800 text-sm">Quick Access</h3>
+                </div>
                 <div className="space-y-2">
                   {user?.role === "SEEKER" ? (
                     <>
-                      <Link to="/seeker/jobs" className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 py-1 transition-all duration-200 hover:translate-x-1">
-                        <Briefcase size={15} /> Browse Jobs
+                      <Link to="/seeker/jobs" className="flex items-center gap-3 text-sm text-gray-600 hover:text-blue-600 py-2 px-3 rounded-lg hover:bg-white/50 transition-all duration-200 group">
+                        <Briefcase size={16} className="group-hover:scale-110 transition-transform" />
+                        <span className="flex-1">Browse Jobs</span>
+                        <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity group-hover:translate-x-1">→</span>
                       </Link>
-                      <Link to="/seeker/applications" className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 py-1 transition-all duration-200 hover:translate-x-1">
-                        <FileText size={15} /> My Applications
+                      <Link to="/seeker/applications" className="flex items-center gap-3 text-sm text-gray-600 hover:text-blue-600 py-2 px-3 rounded-lg hover:bg-white/50 transition-all duration-200 group">
+                        <FileText size={16} className="group-hover:scale-110 transition-transform" />
+                        <span className="flex-1">My Applications</span>
+                        <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity group-hover:translate-x-1">→</span>
                       </Link>
                     </>
                   ) : (
                     <>
-                      <Link to="/employer/jobs/post" className="flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 py-1 transition-all duration-200 hover:translate-x-1">
-                        <Briefcase size={15} /> Post a Job
+                      <Link to="/employer/jobs/post" className="flex items-center gap-3 text-sm text-gray-600 hover:text-blue-600 py-2 px-3 rounded-lg hover:bg-white/50 transition-all duration-200 group">
+                        <Briefcase size={16} className="group-hover:scale-110 transition-transform" />
+                        <span className="flex-1">Post a Job</span>
+                        <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity group-hover:translate-x-1">→</span>
                       </Link>
-                      <Link to="/employer/applicants" className="flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 py-1 transition-all duration-200 hover:translate-x-1">
-                        <Users size={15} /> View Applicants
+                      <Link to="/employer/applicants" className="flex items-center gap-3 text-sm text-gray-600 hover:text-blue-600 py-2 px-3 rounded-lg hover:bg-white/50 transition-all duration-200 group">
+                        <Users size={16} className="group-hover:scale-110 transition-transform" />
+                        <span className="flex-1">View Applicants</span>
+                        <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity group-hover:translate-x-1">→</span>
                       </Link>
                     </>
                   )}
-                  <Link to="/messages" className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 py-1 transition-all duration-200 hover:translate-x-1">
-                    <Send size={15} /> Messages
+                  <Link to="/messages" className="flex items-center gap-3 text-sm text-gray-600 hover:text-blue-600 py-2 px-3 rounded-lg hover:bg-white/50 transition-all duration-200 group">
+                    <Send size={16} className="group-hover:scale-110 transition-transform" />
+                    <span className="flex-1">Messages</span>
+                    <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity group-hover:translate-x-1">→</span>
                   </Link>
                 </div>
               </div>
@@ -655,22 +701,6 @@ const Home = () => {
           }
         }
         
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-out forwards;
-        }
-        
-        .animate-slideDown {
-          animation: slideDown 0.3s ease-out forwards;
-        }
-        
-        .animation-delay-300 {
-          animation-delay: 300ms;
-        }
-        
-        .hover\\:scale-102:hover {
-          transform: scale(1.02);
-        }
-        
         @keyframes bounce {
           0%, 100% {
             transform: scale(1);
@@ -680,8 +710,117 @@ const Home = () => {
           }
         }
         
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+        
+        @keyframes float-slow {
+          0%, 100% {
+            transform: translateY(0px) scale(1);
+          }
+          50% {
+            transform: translateY(-20px) scale(1.05);
+          }
+        }
+        
+        @keyframes float-slow-delayed {
+          0%, 100% {
+            transform: translateY(0px) scale(1);
+          }
+          50% {
+            transform: translateY(20px) scale(1.05);
+          }
+        }
+        
+        @keyframes particle {
+          0% {
+            transform: translateY(0px) translateX(0px);
+            opacity: 0;
+          }
+          50% {
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(-30px) translateX(10px);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes particle-delayed {
+          0% {
+            transform: translateY(0px) translateX(0px);
+            opacity: 0;
+          }
+          50% {
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(-25px) translateX(-10px);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes particle-slow {
+          0% {
+            transform: translateY(0px) translateX(0px);
+            opacity: 0;
+          }
+          50% {
+            opacity: 0.6;
+          }
+          100% {
+            transform: translateY(-40px) translateX(15px);
+            opacity: 0;
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out forwards;
+        }
+        
         .animate-bounce {
           animation: bounce 0.3s ease-in-out;
+        }
+        
+        .animate-shimmer {
+          animation: shimmer 3s infinite;
+        }
+        
+        .animate-float-slow {
+          animation: float-slow 6s ease-in-out infinite;
+        }
+        
+        .animate-float-slow-delayed {
+          animation: float-slow-delayed 7s ease-in-out infinite;
+        }
+        
+        .animate-particle {
+          animation: particle 4s ease-in-out infinite;
+        }
+        
+        .animate-particle-delayed {
+          animation: particle-delayed 5s ease-in-out infinite;
+        }
+        
+        .animate-particle-slow {
+          animation: particle-slow 6s ease-in-out infinite;
+        }
+        
+        .animation-delay-300 {
+          animation-delay: 300ms;
+        }
+        
+        .hover\\:scale-102:hover {
+          transform: scale(1.02);
         }
       `}</style>
     </div>

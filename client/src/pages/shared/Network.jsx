@@ -9,6 +9,7 @@ import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
+import AnimatedBackground from "../../components/AnimatedBackground";
 
 const Avatar = ({ name, role, size = "md" }) => {
   const sizes = { sm: "w-9 h-9 text-sm", md: "w-12 h-12 text-base", lg: "w-16 h-16 text-xl" };
@@ -237,6 +238,7 @@ const Network = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+       <AnimatedBackground />
       <Navbar />
       <Sidebar />
 

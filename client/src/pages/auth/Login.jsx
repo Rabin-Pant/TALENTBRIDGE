@@ -35,10 +35,10 @@ const Login = () => {
       const res = await api.post("/auth/login", data);
       login(res.data.user, res.data.token);
 
-      const role = res.data.user.role;
-      if (role === "SEEKER") navigate("/seeker/dashboard");
-      else if (role === "EMPLOYER") navigate("/employer/dashboard");
-      else if (role === "ADMIN") navigate("/admin/dashboard");
+     const role = res.data.user.role;
+if (role === "SEEKER") navigate("/home");
+else if (role === "EMPLOYER") navigate("/home");
+else if (role === "ADMIN") navigate("/admin/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     } finally {

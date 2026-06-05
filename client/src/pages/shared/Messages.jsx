@@ -10,6 +10,7 @@ import api from "../../api/axios";
 import socket from "../../api/socket";
 import { useAuth } from "../../context/AuthContext";
 import { format, isToday, isYesterday } from "date-fns";
+import AnimatedBackground from "../../components/AnimatedBackground";
 
 const Avatar = ({ name, role, size = "md", online = false }) => {
   const sizes = { sm: "w-8 h-8 text-xs", md: "w-11 h-11 text-sm", lg: "w-14 h-14 text-lg" };
@@ -386,6 +387,7 @@ const handleDeleteMessage = async (type) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AnimatedBackground />
       <Navbar />
       <Sidebar />
 
