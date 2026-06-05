@@ -11,20 +11,30 @@ import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 
-const Avatar = ({ name, role, size = "lg" }) => {
+const Avatar = ({ name, role, size = "lg", profilePicture }) => {
   const sizes = { sm: "w-10 h-10 text-sm", md: "w-14 h-14 text-xl", lg: "w-20 h-20 text-3xl" };
   const colors = {
     SEEKER:   "from-blue-500 to-purple-600",
     EMPLOYER: "from-green-500 to-teal-600",
     ADMIN:    "from-red-500 to-orange-500",
   };
+  
+  const profilePictureUrl = profilePicture ? `http://localhost:5000/uploads/${profilePicture}` : null;
+  
+  if (profilePictureUrl) {
+    return (
+      <div className={`${sizes[size]} rounded-full overflow-hidden flex-shrink-0 border-4 border-white shadow-lg`}>
+        <img src={profilePictureUrl} alt={name} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+  
   return (
     <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0 border-4 border-white shadow-lg`}>
       <span className="text-white font-bold">{name?.charAt(0)?.toUpperCase()}</span>
     </div>
   );
 };
-
 const PublicProfile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useAuth();
@@ -253,7 +263,12 @@ const ConnectButton = () => {
 
             <div className="px-6 pb-6">
               <div className="flex items-end justify-between -mt-10 mb-4 flex-wrap gap-3">
-                <Avatar name={profile?.fullName} role={profile?.role} size="lg" />
+               <Avatar 
+  name={profile?.fullName} 
+  role={profile?.role} 
+  size="lg"
+  profilePicture={profile?.profilePicture}
+/>
                 <ConnectButton />
               </div>
 
@@ -475,7 +490,12 @@ const ConnectButton = () => {
                 posts.map((post) => (
                   <div key={post.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <div className="flex items-center gap-2 mb-3">
-                      <Avatar name={profile?.fullName} role={profile?.role} size="sm" />
+                     <Avatar 
+  name={profile?.fullName} 
+  role={profile?.role} 
+  size="sm"
+  profilePicture={profile?.profilePicture}
+/>
                       <div>
                         <p className="font-semibold text-gray-900 text-sm">{profile?.fullName}</p>
                         <p className="text-xs text-gray-400">{timeAgo(post.createdAt)}</p>

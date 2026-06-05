@@ -27,6 +27,11 @@ const Navbar = () => {
       ? "/employer/profile"
       : null;
 
+  // Get profile picture URL
+  const profilePictureUrl = user?.profilePicture 
+  ? `http://localhost:5000/uploads/${user.profilePicture}`
+  : null;
+
   // Fetch unread count
   const fetchUnreadCount = async () => {
     try {
@@ -119,11 +124,21 @@ const Navbar = () => {
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-50 transition-all duration-200"
             >
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold text-sm">
-                  {user?.fullName?.charAt(0)?.toUpperCase()}
-                </span>
-              </div>
+              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-blue-100">
+  {profilePictureUrl ? (
+    <img 
+      src={profilePictureUrl} 
+      alt={user?.fullName}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center">
+      <span className="text-blue-600 font-semibold text-sm">
+        {user?.fullName?.charAt(0)?.toUpperCase()}
+      </span>
+    </div>
+  )}
+</div>
               <span className="text-sm font-medium text-gray-700 hidden sm:block">
                 {user?.fullName?.split(' ')[0]}
               </span>

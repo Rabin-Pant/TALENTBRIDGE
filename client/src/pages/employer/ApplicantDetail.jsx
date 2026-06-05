@@ -59,7 +59,7 @@ const ApplicantDetail = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await api.get(`/employer/applications/${id}`);
+       const res = await api.get(`/employer/applicants/${id}`);
         setApplication(res.data.application);
         setStatus(res.data.application.status);
         setNote(res.data.application.employerNote || "");
@@ -225,11 +225,11 @@ const ApplicantDetail = () => {
                     </SectionCard>
                   )}
 
-                  {/* Resume */}
-                 {applicant?.resumeFileName && (
+{/* Resume */}
+{application?.resumeSnapshot && (
   <SectionCard title="Resume" icon={FileText} color="green">
     <a
-      href={`http://localhost:5000/uploads/${applicant.resumeFileName}`}
+      href={`http://localhost:5000/uploads/resumes/${application.resumeSnapshot}`}
       target="_blank"
       rel="noreferrer"
       className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-green-400 hover:bg-green-50 transition-colors group"
@@ -239,7 +239,7 @@ const ApplicantDetail = () => {
           <FileText size={18} className="text-green-600" />
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-800">{applicant.resumeFileName}</p>
+          <p className="text-sm font-medium text-gray-800">{application.resumeSnapshot}</p>
           <p className="text-xs text-gray-400 mt-0.5">Click to view full resume</p>
         </div>
       </div>

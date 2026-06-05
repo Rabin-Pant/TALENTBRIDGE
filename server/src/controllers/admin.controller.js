@@ -570,3 +570,34 @@ export const getUserStatistics = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ─── GET SINGLE JOB BY ID ───────────────────────────
+export const getJobById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const job = await prisma.job.findUnique({
+      where: { id },
+      include: {
+        employer: {
+          select: {
+            fullName: true,
+            companyName: true,
+            email: true,
+            companyWebsite: true,
+          },
+        },
+        _count: { select: { applications: true } },
+      },
+    });
+
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    res.json({ job });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

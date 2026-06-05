@@ -11,13 +11,24 @@ import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 import AnimatedBackground from "../../components/AnimatedBackground";
 
-const Avatar = ({ name, role, size = "md" }) => {
+const Avatar = ({ name, role, size = "md", profilePicture }) => {
   const sizes = { sm: "w-9 h-9 text-sm", md: "w-12 h-12 text-base", lg: "w-16 h-16 text-xl" };
   const colors = {
     SEEKER:   "from-blue-500 to-purple-600",
     EMPLOYER: "from-green-500 to-teal-600",
     ADMIN:    "from-red-500 to-orange-500",
   };
+  
+  const profilePictureUrl = profilePicture ? `http://localhost:5000/uploads/${profilePicture}` : null;
+  
+  if (profilePictureUrl) {
+    return (
+      <div className={`${sizes[size]} rounded-full overflow-hidden flex-shrink-0`}>
+        <img src={profilePictureUrl} alt={name} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+  
   return (
     <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0`}>
       <span className="text-white font-bold">{name?.charAt(0)?.toUpperCase()}</span>
@@ -28,7 +39,12 @@ const Avatar = ({ name, role, size = "md" }) => {
 const ConnectionCard = ({ connection, onRemove }) => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 p-5 flex items-start gap-4">
     <Link to={`/profile/${connection.user?.id}`}>
-      <Avatar name={connection.user?.fullName} role={connection.user?.role} size="md" />
+      <Avatar 
+        name={connection.user?.fullName} 
+        role={connection.user?.role} 
+        size="md"
+        profilePicture={connection.user?.profilePicture}
+      />
     </Link>
     <div className="flex-1 min-w-0">
       <Link to={`/profile/${connection.user?.id}`} className="font-semibold text-gray-900 hover:underline block truncate">
@@ -63,7 +79,12 @@ const ConnectionCard = ({ connection, onRemove }) => (
 const RequestCard = ({ request, onAccept, onDecline }) => (
   <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 flex items-start gap-4">
     <Link to={`/profile/${request.sender?.id}`}>
-      <Avatar name={request.sender?.fullName} role={request.sender?.role} size="md" />
+      <Avatar 
+        name={request.sender?.fullName} 
+        role={request.sender?.role} 
+        size="md"
+        profilePicture={request.sender?.profilePicture}
+      />
     </Link>
     <div className="flex-1 min-w-0">
       <Link to={`/profile/${request.sender?.id}`} className="font-semibold text-gray-900 hover:underline block">
@@ -100,7 +121,12 @@ const SuggestionCard = ({ user: u, onConnect, connecting }) => (
     <div className="h-12 bg-gradient-to-r from-blue-400 to-purple-500" />
     <div className="p-4">
       <div className="-mt-8 mb-3">
-        <Avatar name={u.fullName} role={u.role} size="md" />
+        <Avatar 
+          name={u.fullName} 
+          role={u.role} 
+          size="md"
+          profilePicture={u.profilePicture}
+        />
       </div>
       <Link to={`/profile/${u.id}`} className="font-semibold text-gray-900 hover:underline block truncate text-sm">
         {u.fullName}
@@ -238,7 +264,7 @@ const Network = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-       <AnimatedBackground />
+      <AnimatedBackground />
       <Navbar />
       <Sidebar />
 

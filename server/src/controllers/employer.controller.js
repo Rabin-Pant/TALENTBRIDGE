@@ -113,19 +113,23 @@ export const getApplications = async (req, res) => {
       where: { job: { employerId: req.user.id } },
       orderBy: { appliedAt: "desc" },
       include: {
-        job: { select: { title: true } },
+        job: { select: { id: true, title: true, company: true } },
         applicant: {
           select: {
+            id: true,
             fullName: true,
+            email: true,
             currentTitle: true,
             location: true,
             skills: true,
             experienceLevel: true,
+            profilePicture: true,
           },
         },
       },
     });
 
+    console.log(`Found ${applications.length} applications for employer ${req.user.id}`);
     res.json({ applications });
   } catch (err) {
     console.error(err);

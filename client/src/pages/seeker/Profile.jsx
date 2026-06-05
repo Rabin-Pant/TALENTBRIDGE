@@ -3,7 +3,8 @@ import { useForm } from "react-hook-form";
 import {
   User, MapPin, Briefcase, FileText, Save,
   Upload, CheckCircle, Sparkles, X, Plus,
-  GraduationCap, Building2, Lock, Mail, Phone
+  GraduationCap, Building2, Lock, Mail, Phone,
+  Camera, Trash2
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -13,10 +14,11 @@ import { useAuth } from "../../context/AuthContext";
 const EXPERIENCE_LEVELS = ["ENTRY", "JUNIOR", "MID", "SENIOR", "LEAD", "EXECUTIVE"];
 
 const SeekerProfile = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingProfile, setUploadingProfile] = useState(false);
   const [visible, setVisible] = useState(false);
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState("basic");
@@ -110,22 +112,75 @@ const SeekerProfile = () => {
     }
   };
 
- const handleResumeUpload = async (e) => {
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("resume", file);
+    try {
+      setUploading(true);
+      const res = await api.post("/seeker/resume", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setProfileData((prev) => ({ ...prev, resumeFileName: res.data.filename }));
+      showToast("Resume uploaded successfully!");
+    } catch {
+      showToast("Failed to upload resume", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+// Profile Picture Upload
+const handleProfilePictureUpload = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  
+  if (!file.type.startsWith('image/')) {
+    showToast("Please upload an image file", "error");
+    return;
+  }
+  
+  if (file.size > 2 * 1024 * 1024) {
+    showToast("Image size should be less than 2MB", "error");
+    return;
+  }
+
   const formData = new FormData();
-  formData.append("resume", file);
+  formData.append("profilePicture", file);
+  
   try {
-    setUploading(true);
-    const res = await api.post("/seeker/resume", formData, {
+    setUploadingProfile(true);
+    const res = await api.post("/seeker/profile-picture", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    setProfileData((prev) => ({ ...prev, resumeFileName: res.data.filename }));
-    showToast("Resume uploaded successfully!");
-  } catch {
-    showToast("Failed to upload resume", "error");
+    
+    // Update local state
+    setProfileData((prev) => ({ ...prev, profilePicture: res.data.profilePicture }));
+    
+    // IMPORTANT: Update global user context
+    updateUser({ profilePicture: res.data.profilePicture });
+    
+    showToast("Profile picture updated!");
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to upload profile picture", "error");
   } finally {
-    setUploading(false);
+    setUploadingProfile(false);
+  }
+};
+
+const handleRemoveProfilePicture = async () => {
+  try {
+    await api.delete("/seeker/profile-picture");
+    setProfileData((prev) => ({ ...prev, profilePicture: null }));
+    
+    // IMPORTANT: Update global user context
+    updateUser({ profilePicture: null });
+    
+    showToast("Profile picture removed");
+  } catch {
+    showToast("Failed to remove profile picture", "error");
   }
 };
 
@@ -145,6 +200,10 @@ const SeekerProfile = () => {
       </div>
     </div>
   );
+
+  const profilePictureUrl = profileData?.profilePicture 
+    ? `http://localhost:5000/uploads/${profileData.profilePicture}`
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -170,6 +229,55 @@ const SeekerProfile = () => {
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
             <p className="text-gray-500 text-sm mt-1">Keep your profile updated to attract employers</p>
+          </div>
+
+          {/* Profile Picture Section */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+            <div className="flex items-center gap-6">
+              {/* Avatar with upload */}
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden">
+                  {profilePictureUrl ? (
+                    <img 
+                      src={profilePictureUrl} 
+                      alt={profileData?.fullName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-bold text-3xl">
+                      {profileData?.fullName?.charAt(0)?.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors shadow-lg">
+                  <Camera size={14} className="text-white" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfilePictureUpload}
+                    className="hidden"
+                    disabled={uploadingProfile}
+                  />
+                </label>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-gray-900">Profile Picture</h3>
+                <p className="text-xs text-gray-400 mt-1">JPG, PNG or GIF. Max 2MB.</p>
+                {profilePictureUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveProfilePicture}
+                    className="mt-2 text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
+                  >
+                    <Trash2 size={12} /> Remove photo
+                  </button>
+                )}
+                {uploadingProfile && (
+                  <p className="text-xs text-blue-500 mt-2">Uploading...</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Locked Info Banner */}
@@ -514,54 +622,52 @@ const SeekerProfile = () => {
 
             {/* ── RESUME TAB ── */}
             {activeTab === "resume" && (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-    <h2 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-      <FileText size={18} className="text-blue-500" /> Resume
-    </h2>
-    <p className="text-xs text-gray-400 mb-6">PDF or DOC, max 10MB</p>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h2 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                  <FileText size={18} className="text-blue-500" /> Resume
+                </h2>
+                <p className="text-xs text-gray-400 mb-6">PDF or DOC, max 10MB</p>
 
-    {profileData?.resumeFileName ? (
-      <div className="mb-4 space-y-3">
-        {/* Current Resume */}
-        <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-              <FileText size={18} className="text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-green-700">Current Resume</p>
-              <p className="text-xs text-green-600 mt-0.5">{profileData.resumeFileName}</p>
-            </div>
-          </div>
-          
-           <a href={`http://localhost:5000/uploads/${profileData.resumeFileName}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors">
-  <CheckCircle size={13} /> View Resume
-</a>
-        </div>
-        <p className="text-xs text-gray-400 text-center">Upload a new file to replace current resume</p>
-      </div>
-    ) : (
-      <div className="mb-4 flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-        <FileText size={18} className="text-amber-500" />
-        <div>
-          <p className="text-sm font-medium text-amber-700">No resume uploaded yet</p>
-          <p className="text-xs text-amber-600 mt-0.5">Upload your resume to apply for jobs faster</p>
-        </div>
-      </div>
-    )}
+                {profileData?.resumeFileName ? (
+                  <div className="mb-4 space-y-3">
+                    <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                          <FileText size={18} className="text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-green-700">Current Resume</p>
+                          <p className="text-xs text-green-600 mt-0.5">{profileData.resumeFileName}</p>
+                        </div>
+                      </div>
+                      <a href={`http://localhost:5000/uploads/${profileData.resumeFileName}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors">
+                        <CheckCircle size={13} /> View Resume
+                      </a>
+                    </div>
+                    <p className="text-xs text-gray-400 text-center">Upload a new file to replace current resume</p>
+                  </div>
+                ) : (
+                  <div className="mb-4 flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <FileText size={18} className="text-amber-500" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-700">No resume uploaded yet</p>
+                      <p className="text-xs text-amber-600 mt-0.5">Upload your resume to apply for jobs faster</p>
+                    </div>
+                  </div>
+                )}
 
-    <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 rounded-2xl p-8 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-      <Upload size={28} className="text-gray-400" />
-      <div className="text-center">
-        <p className="text-sm font-medium text-gray-600">
-          {uploading ? "Uploading..." : profileData?.resumeFileName ? "Upload new resume" : "Click to upload resume"}
-        </p>
-        <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX up to 10MB</p>
-      </div>
-      <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" />
-    </label>
-  </div>
-)}
+                <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 rounded-2xl p-8 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                  <Upload size={28} className="text-gray-400" />
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-600">
+                      {uploading ? "Uploading..." : profileData?.resumeFileName ? "Upload new resume" : "Click to upload resume"}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX up to 10MB</p>
+                  </div>
+                  <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" />
+                </label>
+              </div>
+            )}
 
             {/* Save Button */}
             {activeTab !== "resume" && (

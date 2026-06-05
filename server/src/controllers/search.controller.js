@@ -18,7 +18,7 @@ export const searchUsers = async (req, res) => {
             id: { not: userId },
           },
           {
-            role: { not: "ADMIN" },  // ← EXCLUDE ADMIN USERS
+            role: { not: "ADMIN" }, 
           },
           {
             OR: [
@@ -42,6 +42,7 @@ export const searchUsers = async (req, res) => {
         companyName: true,
         location: true,
         industry: true,
+        profilePicture: true,
       },
       take: 20,
     });

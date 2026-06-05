@@ -35,10 +35,12 @@ const EmployerApplicants = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await api.get("/employer/applications");
+        // CHANGE THIS LINE - use /applicants not /applications
+        const res = await api.get("/employer/applicants");
+        console.log("Applications fetched:", res.data);
         setApplications(res.data.applications);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to fetch applicants:", err);
       } finally {
         setLoading(false);
         setTimeout(() => setVisible(true), 100);

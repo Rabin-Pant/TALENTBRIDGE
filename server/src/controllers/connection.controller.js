@@ -111,14 +111,30 @@ export const getConnections = async (req, res) => {
           select: {
             id: true, fullName: true, currentTitle: true,
             companyName: true, role: true, location: true,
+            profilePicture: true,
           },
         },
         receiver: {
           select: {
             id: true, fullName: true, currentTitle: true,
             companyName: true, role: true, location: true,
+            profilePicture: true,
           },
         },
+
+        select: {
+  id: true, fullName: true, currentTitle: true,
+  companyName: true, role: true, location: true,
+  industry: true, profilePicture: true,  
+},
+
+sender: {
+  select: {
+    id: true, fullName: true, currentTitle: true,
+    companyName: true, role: true, location: true,
+    profilePicture: true,  
+  },
+},
       },
     });
 
@@ -255,6 +271,7 @@ export const getPublicProfile = async (req, res) => {
         workExperience: true, companyName: true,
         companyWebsite: true, companySize: true,
         industry: true, companyDescription: true,
+        profilePicture: true,
       },
     });
     if (!user) return res.status(404).json({ message: "User not found" });

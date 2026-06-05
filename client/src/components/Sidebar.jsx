@@ -51,6 +51,11 @@ const Sidebar = () => {
 
   const colors = roleColors[user?.role] || roleColors.SEEKER;
 
+  // Get profile picture URL
+  const profilePictureUrl = user?.profilePicture 
+    ? `http://localhost:5000/uploads/${user.profilePicture}`
+    : null;
+
   // Fetch unread message count
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -66,14 +71,8 @@ const Sidebar = () => {
       fetchUnreadCount();
     }
 
-    // Listen for new messages to update badge in real-time
-    const handleNewMessage = () => {
-      fetchUnreadCount();
-    };
-
-    const handleMessageRead = () => {
-      fetchUnreadCount();
-    };
+    const handleNewMessage = () => fetchUnreadCount();
+    const handleMessageRead = () => fetchUnreadCount();
 
     socket.on("newMessage", handleNewMessage);
     socket.on("messageRead", handleMessageRead);
@@ -89,10 +88,20 @@ const Sidebar = () => {
       {/* Profile Summary */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-            <span className={`font-bold text-sm ${colors.text}`}>
-              {user?.fullName?.charAt(0)?.toUpperCase()}
-            </span>
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+            {profilePictureUrl ? (
+              <img 
+                src={profilePictureUrl} 
+                alt={user?.fullName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className={`w-full h-full ${colors.bg} flex items-center justify-center`}>
+                <span className={`font-bold text-sm ${colors.text}`}>
+                  {user?.fullName?.charAt(0)?.toUpperCase()}
+                </span>
+              </div>
+            )}
           </div>
           <div className="overflow-hidden">
             <p className="font-semibold text-sm text-gray-900 truncate">{user?.fullName}</p>
@@ -117,7 +126,6 @@ const Sidebar = () => {
           >
             <Icon size={18} className="flex-shrink-0" />
             <span className="flex-1">{label}</span>
-            {/* Unread Message Badge - Only for Messages */}
             {label === "Messages" && unreadMessageCount > 0 && (
               <span className="bg-blue-600 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center animate-pulse">
                 {unreadMessageCount > 99 ? "99+" : unreadMessageCount}

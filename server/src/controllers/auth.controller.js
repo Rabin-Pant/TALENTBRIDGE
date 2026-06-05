@@ -132,6 +132,7 @@ export const register = async (req, res) => {
         fullName: user.fullName,
         role: user.role,
         companyName: user.companyName,
+         profilePicture: user.profilePicture,
       },
     });
   } catch (err) {
@@ -190,6 +191,7 @@ export const login = async (req, res) => {
         fullName: user.fullName,
         role: user.role,
         companyName: user.companyName,
+        profilePicture: user.profilePicture,
       },
     });
   } catch (err) {
@@ -223,6 +225,7 @@ export const getMe = async (req, res) => {
         companyDescription: true,
         createdAt: true,
         lastLogin: true,
+        profilePicture: true,  
       },
     });
 

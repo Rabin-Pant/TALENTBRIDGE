@@ -29,13 +29,24 @@ const timeAgo = (date) => {
   return `${days}d ago`;
 };
 
-const Avatar = ({ name, size = "sm", role }) => {
+const Avatar = ({ name, size = "sm", role, profilePicture }) => {
   const sizes = { sm: "w-9 h-9 text-sm", md: "w-11 h-11 text-base", lg: "w-14 h-14 text-xl" };
   const colors = {
     SEEKER:   "from-blue-500 to-purple-600",
     EMPLOYER: "from-green-500 to-teal-600",
     ADMIN:    "from-red-500 to-orange-500",
   };
+  
+ const profilePictureUrl = profilePicture ? `http://localhost:5000/uploads/${profilePicture}` : null;
+  
+  if (profilePictureUrl) {
+    return (
+      <div className={`${sizes[size]} rounded-full overflow-hidden flex-shrink-0 shadow-md border-2 border-white`}>
+        <img src={profilePictureUrl} alt={name} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+  
   return (
     <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0 shadow-md transition-transform duration-300 hover:scale-105`}>
       <span className="text-white font-bold">{name?.charAt(0)?.toUpperCase()}</span>
@@ -316,7 +327,12 @@ const PostCard = ({ post, onDelete }) => {
       <div className="flex items-start justify-between p-5 pb-3">
         <div className="flex items-start gap-3">
           <Link to={`/profile/${post.author?.id}`} className="transition-transform duration-300 hover:scale-105">
-            <Avatar name={post.author?.fullName} role={post.author?.role} size="md" />
+            <Avatar 
+  name={post.author?.fullName} 
+  role={post.author?.role} 
+  size="md"
+  profilePicture={post.author?.profilePicture}
+/>
           </Link>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -573,40 +589,51 @@ const Home = () => {
                 <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float-slow-delayed"></div>
               </div>
 
-              {/* Profile Card with Glass Morphism */}
-              <div className="relative group backdrop-blur-xl bg-white/30 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 border border-white/20">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative h-24 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 blur-2xl opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
-                  <div className="absolute top-4 left-4 w-1 h-1 bg-white rounded-full animate-particle"></div>
-                  <div className="absolute bottom-4 right-8 w-1.5 h-1.5 bg-white rounded-full animate-particle-delayed"></div>
-                  <div className="absolute top-8 right-12 w-1 h-1 bg-white rounded-full animate-particle-slow"></div>
-                </div>
-                
-                <div className="relative px-5 pb-5">
-                  <div className="-mt-10 mb-3 transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
-                    <Avatar name={user?.fullName} role={user?.role} size="lg" />
-                  </div>
-                  <Link to={user?.role === "SEEKER" ? "/seeker/profile" : "/employer/profile"}>
-                    <h3 className="font-semibold text-lg text-gray-800 group-hover:text-blue-600 transition-all duration-300">
-                      {user?.fullName}
-                    </h3>
-                  </Link>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {user?.currentTitle || user?.companyName || user?.role}
-                  </p>
-                  <div className="mt-3 flex items-center justify-between">
-                    <Link
-                      to="/network"
-                      className="text-xs text-blue-600 font-medium hover:text-blue-700 transition-all duration-200 inline-flex items-center gap-1 group-hover:gap-2"
-                    >
-                      View my network <span className="text-base group-hover:translate-x-1 transition-transform">→</span>
-                    </Link>
-                  </div>
-                </div>
-              </div>
+             {/* Profile Card with Glass Morphism */}
+<div className="relative group backdrop-blur-xl bg-white/30 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 border border-white/20">
+  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+  
+  <div className="relative h-24 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+    <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 blur-2xl opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+    <div className="absolute top-4 left-4 w-1 h-1 bg-white rounded-full animate-particle"></div>
+    <div className="absolute bottom-4 right-8 w-1.5 h-1.5 bg-white rounded-full animate-particle-delayed"></div>
+    <div className="absolute top-8 right-12 w-1 h-1 bg-white rounded-full animate-particle-slow"></div>
+  </div>
+  
+  <div className="relative px-5 pb-5">
+    <div className="-mt-10 mb-3 transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+      {/* Avatar with profile picture support */}
+      {user?.profilePicture ? (
+        <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white shadow-lg">
+          <img 
+            src={`http://localhost:5000/uploads/${user.profilePicture}`} 
+            alt={user?.fullName}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <Avatar name={user?.fullName} role={user?.role} size="lg" />
+      )}
+    </div>
+    <Link to={user?.role === "SEEKER" ? "/seeker/profile" : "/employer/profile"}>
+      <h3 className="font-semibold text-lg text-gray-800 group-hover:text-blue-600 transition-all duration-300">
+        {user?.fullName}
+      </h3>
+    </Link>
+    <p className="text-xs text-gray-500 mt-0.5">
+      {user?.currentTitle || user?.companyName || user?.role}
+    </p>
+    <div className="mt-3 flex items-center justify-between">
+      <Link
+        to="/network"
+        className="text-xs text-blue-600 font-medium hover:text-blue-700 transition-all duration-200 inline-flex items-center gap-1 group-hover:gap-2"
+      >
+        View my network <span className="text-base group-hover:translate-x-1 transition-transform">→</span>
+      </Link>
+    </div>
+  </div>
+</div>
 
               {/* Suggestions Card with Glass Morphism */}
               {suggestions.length > 0 && (

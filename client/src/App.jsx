@@ -35,6 +35,7 @@ import AdminDashboard    from "./pages/admin/Dashboard";
 import AdminUsers        from "./pages/admin/Users";
 import AdminJobs         from "./pages/admin/Jobs";
 import AdminApplications from "./pages/admin/Applications";
+import AdminJobDetail from "./pages/admin/JobDetail";
 
 const RoleRedirect = () => {
   const { user } = useAuth();
@@ -81,6 +82,7 @@ const App = () => (
     <Route path="/admin/users"        element={<ProtectedRoute role="ADMIN"><AdminUsers /></ProtectedRoute>} />
     <Route path="/admin/jobs"         element={<ProtectedRoute role="ADMIN"><AdminJobs /></ProtectedRoute>} />
     <Route path="/admin/applications" element={<ProtectedRoute role="ADMIN"><AdminApplications /></ProtectedRoute>} />
+    <Route path="/admin/jobs/:id" element={<ProtectedRoute role="ADMIN"><AdminJobDetail /></ProtectedRoute>} />
 
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>

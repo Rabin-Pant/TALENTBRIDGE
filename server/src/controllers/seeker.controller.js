@@ -82,50 +82,95 @@ export const applyToJob = async (req, res) => {
     const seekerId = req.user.id;
     const jobId = req.params.id;
 
+    console.log("Application started for job:", jobId);
+    console.log("File received:", req.file);
+    console.log("Cover letter:", coverLetter);
+
+    // Handle resume file
+    let resumeFileName = null;
+    if (req.file) {
+      // Resume uploaded during application
+      resumeFileName = req.file.filename;
+      console.log("New resume uploaded:", resumeFileName);
+    } else {
+      // Check if user has existing resume
+      const seeker = await prisma.user.findUnique({
+        where: { id: seekerId },
+        select: { resumeFileName: true }
+      });
+      resumeFileName = seeker?.resumeFileName;
+      console.log("Using existing resume:", resumeFileName);
+    }
+
+    // Check if resume exists
+    if (!resumeFileName) {
+      return res.status(400).json({ message: "Please upload your resume" });
+    }
+
     // Check job exists
     const job = await prisma.job.findUnique({ where: { id: jobId } });
-    if (!job || job.status !== "ACTIVE") {
-      return res.status(404).json({ message: "Job not found or closed" });
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+    if (job.status !== "ACTIVE") {
+      return res.status(400).json({ message: "Job is not active" });
     }
 
     // Check already applied
-    const existing = await prisma.application.findUnique({
-      where: { jobId_applicantId: { jobId, applicantId: seekerId } },
+    const existing = await prisma.application.findFirst({
+      where: { 
+        jobId: jobId, 
+        applicantId: seekerId 
+      },
     });
+    
     if (existing) {
       return res.status(400).json({ message: "You already applied to this job" });
     }
 
-    // Get seeker resume
-    const seeker = await prisma.user.findUnique({ where: { id: seekerId } });
-
+    // Create application
     const application = await prisma.application.create({
       data: {
         jobId,
         applicantId: seekerId,
-        coverLetter,
-        resumeSnapshot: seeker.resumeFileName,
+        coverLetter: coverLetter || null,
+        resumeSnapshot: resumeFileName,
       },
+    });
+
+    console.log("Application created:", application.id);
+
+    // Get seeker info for notification
+    const seeker = await prisma.user.findUnique({
+      where: { id: seekerId },
+      select: { fullName: true, email: true }
     });
 
     // Create notification in database
     const notification = await prisma.notification.create({
       data: {
         recipientId: job.employerId,
-        title: "New Application",
+        title: "New Application Received!",
         message: `${seeker.fullName} applied for ${job.title}`,
         type: "APPLICATION",
         link: `/employer/applications/${application.id}`,
       },
     });
 
-    // Emit real-time notification via socket
-    io.to(job.employerId).emit("newNotification", notification);
+    console.log("Notification created:", notification.id);
 
-    res.status(201).json({ message: "Application submitted successfully", application });
+    // Emit real-time notification via socket
+    if (io) {
+      io.to(job.employerId).emit("newNotification", notification);
+    }
+
+    res.status(201).json({ 
+      message: "Application submitted successfully", 
+      application 
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Apply to job error:", err);
+    res.status(500).json({ message: "Server error: " + err.message });
   }
 };
 
@@ -172,6 +217,7 @@ export const getProfile = async (req, res) => {
         resumeFileName: true,
         education: true,
         workExperience: true,
+         profilePicture: true,  
       },
     });
 
@@ -384,6 +430,48 @@ export const markAllNotificationsRead = async (req, res) => {
     res.json({ message: "All notifications marked as read" });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── UPLOAD PROFILE PICTURE ─────────────────────────
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Store the relative path
+    const profilePicturePath = `profiles/${req.file.filename}`;
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { profilePicture: profilePicturePath },
+      select: { id: true, profilePicture: true }
+    });
+
+    res.json({ 
+      message: "Profile picture uploaded successfully", 
+      profilePicture: user.profilePicture 
+    });
+  } catch (err) {
+    console.error("Upload profile picture error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── DELETE PROFILE PICTURE ─────────────────────────
+export const deleteProfilePicture = async (req, res) => {
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { profilePicture: null },
+      select: { id: true, profilePicture: true }
+    });
+
+    res.json({ message: "Profile picture removed", profilePicture: null });
+  } catch (err) {
+    console.error("Delete profile picture error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

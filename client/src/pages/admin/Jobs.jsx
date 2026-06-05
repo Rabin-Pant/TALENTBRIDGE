@@ -227,7 +227,7 @@ const AdminJobs = () => {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <Link
-                        to={`/employer/jobs/${job.id}`}
+                        to={`/admin/jobs/${job.id}`}
                         className="p-2 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                         title="View Job Details"
                       >

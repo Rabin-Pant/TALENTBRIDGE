@@ -4,7 +4,7 @@ import roleMiddleware from "../middleware/role.middleware.js";
 import {
   getDashboard, getUsers, toggleUserStatus,
   deleteUser, getAllJobs, deleteJob,
-  getAllApplications, sendNotification, approveEmployer,
+  getAllApplications, sendNotification, approveEmployer, getJobById,
 } from "../controllers/admin.controller.js";
 
 // Import security middleware from the UPDATED file
@@ -43,7 +43,7 @@ router.delete("/users/:id", strictRateLimiter, validateUserId, deleteUser);
 // Job Management
 router.get("/jobs", validateSearchQuery, getAllJobs);
 router.delete("/jobs/:id", strictRateLimiter, validateUserId, deleteJob);
-
+router.get("/jobs/:id", getJobById);
 // Application Management
 router.get("/applications", validateSearchQuery, getAllApplications);
 
