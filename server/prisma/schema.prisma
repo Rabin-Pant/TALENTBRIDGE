@@ -82,6 +82,7 @@ model User {
   createdAt DateTime @default(now())
   lastLogin DateTime?
   profilePicture String? 
+  coverPicture   String?
 
   // Seeker-only fields
   currentTitle    String?

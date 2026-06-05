@@ -25,6 +25,10 @@ const SeekerProfile = () => {
   const [skillInput, setSkillInput] = useState("");
   const [skills, setSkills] = useState([]);
   const [profileData, setProfileData] = useState(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [coverPreview, setCoverPreview] = useState(null);
+  const [showProfilePicModal, setShowProfilePicModal] = useState(false);
+  const [showCoverModal, setShowCoverModal] = useState(false);
 
   // Education state
   const [education, setEducation] = useState([]);
@@ -131,58 +135,114 @@ const SeekerProfile = () => {
     }
   };
 
-// Profile Picture Upload
-const handleProfilePictureUpload = async (e) => {
+  // Profile Picture Upload
+  const handleProfilePictureUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      showToast("Please upload an image file", "error");
+      return;
+    }
+    
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("Image size should be less than 2MB", "error");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("profilePicture", file);
+    
+    try {
+      setUploadingProfile(true);
+      const res = await api.post("/seeker/profile-picture", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      
+      setProfileData((prev) => ({ ...prev, profilePicture: res.data.profilePicture }));
+      updateUser({ profilePicture: res.data.profilePicture });
+      showToast("Profile picture updated!");
+      // Reload to update navbar
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to upload profile picture", "error");
+    } finally {
+      setUploadingProfile(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    try {
+      await api.delete("/seeker/profile-picture");
+      setProfileData((prev) => ({ ...prev, profilePicture: null }));
+      updateUser({ profilePicture: null });
+      showToast("Profile picture removed");
+      setTimeout(() => window.location.reload(), 500);
+    } catch {
+      showToast("Failed to remove profile picture", "error");
+    }
+  };
+
+  // Cover Picture Upload
+const handleCoverPictureUpload = async (e) => {
   const file = e.target.files[0];
-  if (!file) return;
-  
-  if (!file.type.startsWith('image/')) {
-    showToast("Please upload an image file", "error");
+  if (!file) {
+    console.log("No file selected");
     return;
   }
   
-  if (file.size > 2 * 1024 * 1024) {
-    showToast("Image size should be less than 2MB", "error");
+  console.log("File selected:", file.name, file.type, file.size);
+  
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    showToast("Please upload a valid image (JPEG, PNG, GIF, or WEBP)", "error");
+    return;
+  }
+  
+  // Validate file size (5MB max)
+  if (file.size > 5 * 1024 * 1024) {
+    showToast("Image size should be less than 5MB", "error");
     return;
   }
 
   const formData = new FormData();
-  formData.append("profilePicture", file);
+  formData.append("coverPicture", file);
+  
+  // Show preview immediately
+  const previewUrl = URL.createObjectURL(file);
+  setCoverPreview(previewUrl);
   
   try {
-    setUploadingProfile(true);
-    const res = await api.post("/seeker/profile-picture", formData, {
+    setUploadingCover(true);
+    console.log("Uploading cover picture...");
+    const res = await api.post("/seeker/cover-picture", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+    console.log("Upload response:", res.data);
     
-    // Update local state
-    setProfileData((prev) => ({ ...prev, profilePicture: res.data.profilePicture }));
-    
-    // IMPORTANT: Update global user context
-    updateUser({ profilePicture: res.data.profilePicture });
-    
-    showToast("Profile picture updated!");
+    setProfileData((prev) => ({ ...prev, coverPicture: res.data.coverPicture }));
+    setCoverPreview(null);
+    showToast("Cover photo updated!");
   } catch (err) {
-    console.error(err);
-    showToast("Failed to upload profile picture", "error");
+    console.error("Upload error:", err);
+    console.error("Error response:", err.response?.data);
+    setCoverPreview(null);
+    showToast(err.response?.data?.message || "Failed to upload cover photo", "error");
   } finally {
-    setUploadingProfile(false);
+    setUploadingCover(false);
   }
 };
-
-const handleRemoveProfilePicture = async () => {
-  try {
-    await api.delete("/seeker/profile-picture");
-    setProfileData((prev) => ({ ...prev, profilePicture: null }));
-    
-    // IMPORTANT: Update global user context
-    updateUser({ profilePicture: null });
-    
-    showToast("Profile picture removed");
-  } catch {
-    showToast("Failed to remove profile picture", "error");
-  }
-};
+  const handleRemoveCoverPicture = async () => {
+    try {
+      await api.delete("/seeker/cover-picture");
+      setProfileData((prev) => ({ ...prev, coverPicture: null }));
+      showToast("Cover photo removed");
+    } catch {
+      showToast("Failed to remove cover photo", "error");
+    }
+  };
 
   const TABS = [
     { id: "basic",      label: "Basic Info",   icon: User         },
@@ -231,55 +291,157 @@ const handleRemoveProfilePicture = async () => {
             <p className="text-gray-500 text-sm mt-1">Keep your profile updated to attract employers</p>
           </div>
 
-          {/* Profile Picture Section */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-            <div className="flex items-center gap-6">
-              {/* Avatar with upload */}
-              <div className="relative group">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden">
-                  {profilePictureUrl ? (
-                    <img 
-                      src={profilePictureUrl} 
-                      alt={profileData?.fullName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-white font-bold text-3xl">
-                      {profileData?.fullName?.charAt(0)?.toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors shadow-lg">
-                  <Camera size={14} className="text-white" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfilePictureUpload}
-                    className="hidden"
-                    disabled={uploadingProfile}
-                  />
-                </label>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-gray-900">Profile Picture</h3>
-                <p className="text-xs text-gray-400 mt-1">JPG, PNG or GIF. Max 2MB.</p>
-                {profilePictureUrl && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveProfilePicture}
-                    className="mt-2 text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
-                  >
-                    <Trash2 size={12} /> Remove photo
-                  </button>
-                )}
-                {uploadingProfile && (
-                  <p className="text-xs text-blue-500 mt-2">Uploading...</p>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* Profile Picture Modal */}
+{showProfilePicModal && profilePictureUrl && (
+  <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowProfilePicModal(false)}>
+    <div className="relative max-w-3xl max-h-[90vh]">
+      <button
+        onClick={() => setShowProfilePicModal(false)}
+        className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+      >
+        <X size={24} />
+      </button>
+      <img 
+        src={profilePictureUrl} 
+        alt={profileData?.fullName}
+        className="max-w-full max-h-[90vh] object-contain rounded-lg"
+      />
+    </div>
+  </div>
+)}
 
+{/* Cover Photo Modal */}
+{showCoverModal && profileData?.coverPicture && (
+  <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowCoverModal(false)}>
+    <div className="relative max-w-5xl max-h-[90vh]">
+      <button
+        onClick={() => setShowCoverModal(false)}
+        className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+      >
+        <X size={24} />
+      </button>
+      <img 
+        src={`http://localhost:5000/uploads/${profileData.coverPicture}`} 
+        alt="Cover"
+        className="max-w-full max-h-[90vh] object-contain rounded-lg"
+      />
+    </div>
+  </div>
+)}
+
+{/* Cover Photo Section */}
+<div 
+  className="relative h-48 bg-gray-200 rounded-t-2xl overflow-hidden cursor-pointer"
+  onClick={() => profileData?.coverPicture && setShowCoverModal(true)}
+>
+  {coverPreview ? (
+    <img 
+      src={coverPreview} 
+      alt="Cover preview" 
+      className="w-full h-full object-cover"
+    />
+  ) : profileData?.coverPicture ? (
+    <img 
+      src={`http://localhost:5000/uploads/${profileData.coverPicture}`} 
+      alt="Cover"
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <div className="w-full h-full bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500" />
+  )}
+  
+  {/* Overlay text on hover */}
+  {profileData?.coverPicture && (
+    <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+      <span className="text-white text-sm font-medium">Click to view full size</span>
+    </div>
+  )}
+  
+  {/* Buttons - prevent click from triggering the cover click */}
+  <div className="absolute bottom-4 right-4 flex gap-2" onClick={(e) => e.stopPropagation()}>
+    <label className="bg-black/60 hover:bg-black/80 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer z-10">
+      <Camera size={14} />
+      {profileData?.coverPicture ? "Change Cover" : "Add Cover"}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleCoverPictureUpload}
+        className="hidden"
+      />
+    </label>
+    
+    {profileData?.coverPicture && (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleRemoveCoverPicture();
+        }}
+        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer z-10"
+      >
+        <Trash2 size={14} />
+        Remove
+      </button>
+    )}
+  </div>
+  
+  {uploadingCover && (
+    <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+      <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+    </div>
+  )}
+</div>
+
+ {/* Profile Picture - Overlapping the cover */}
+<div className="relative px-6">
+  <div className="-mt-12 mb-3 relative">
+    <div 
+      className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white cursor-pointer"
+      onClick={() => profilePictureUrl && setShowProfilePicModal(true)}
+    >
+      {profilePictureUrl ? (
+        <img 
+          src={profilePictureUrl} 
+          alt={profileData?.fullName}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <span className="text-white font-bold text-3xl">
+            {profileData?.fullName?.charAt(0)?.toUpperCase()}
+          </span>
+        </div>
+      )}
+    </div>
+    
+    {/* Profile Picture Buttons - prevent click from triggering the profile click */}
+    <div className="absolute -bottom-2 -right-2 flex gap-1" onClick={(e) => e.stopPropagation()}>
+      <label className="bg-blue-600 hover:bg-blue-700 text-white p-1.5 rounded-full cursor-pointer shadow-lg transition-all z-10">
+        <Camera size={14} />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleProfilePictureUpload}
+          className="hidden"
+        />
+      </label>
+      {profileData?.profilePicture && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleRemoveProfilePicture();
+          }}
+          className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full shadow-lg transition-all z-10"
+        >
+          <Trash2 size={14} />
+        </button>
+      )}
+    </div>
+  </div>
+</div>
           {/* Locked Info Banner */}
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-start gap-3">
             <Lock size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />

@@ -24,7 +24,7 @@ export const getFeed = async (req, res) => {
       c.senderId === userId ? c.receiverId : c.senderId
     );
 
-    // Get posts — connections first then everyone
+    // Get posts
     const posts = await prisma.post.findMany({
       skip,
       take: limit,
@@ -59,7 +59,6 @@ export const getFeed = async (req, res) => {
       },
     });
 
-    // Add isLiked and isConnected flags
     const enriched = posts.map((post) => ({
       ...post,
       isLiked: post.likes.some((l) => l.userId === userId),
@@ -148,11 +147,19 @@ export const toggleLike = async (req, res) => {
     await prisma.like.create({ data: { postId: id, userId } });
     await prisma.post.update({ where: { id }, data: { likesCount: { increment: 1 } } });
 
-    // Notify post author
-    const post = await prisma.post.findUnique({ where: { id } });
+    // Get post author info
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { authorId: true, title: true }
+    });
+    
+    // Send notification to post author (if not self-like)
     if (post && post.authorId !== userId) {
-      const liker = await prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
-      
+      const liker = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { fullName: true }
+      });
+
       // Create notification in database
       const notification = await prisma.notification.create({
         data: {
@@ -163,7 +170,7 @@ export const toggleLike = async (req, res) => {
           link: `/home`,
         },
       });
-      
+
       // Emit real-time notification via socket
       io.to(post.authorId).emit("newNotification", notification);
     }
@@ -180,11 +187,12 @@ export const addComment = async (req, res) => {
   try {
     const { content } = req.body;
     const { id } = req.params;
+    const userId = req.user.id;
 
     if (!content) return res.status(400).json({ message: "Comment cannot be empty" });
 
     const comment = await prisma.comment.create({
-      data: { content, postId: id, authorId: req.user.id },
+      data: { content, postId: id, authorId: userId },
       include: {
         author: {
           select: { id: true, fullName: true, currentTitle: true, role: true },
@@ -192,20 +200,30 @@ export const addComment = async (req, res) => {
       },
     });
 
-    // Notify post author
-    const post = await prisma.post.findUnique({ where: { id } });
-    if (post && post.authorId !== req.user.id) {
+    // Get post author info
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { authorId: true, title: true }
+    });
+
+    // Send notification to post author (if not self-comment)
+    if (post && post.authorId !== userId) {
+      const commenter = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { fullName: true }
+      });
+
       // Create notification in database
       const notification = await prisma.notification.create({
         data: {
           recipientId: post.authorId,
           title: "New comment on your post",
-          message: `${comment.author.fullName} commented: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+          message: `${commenter.fullName} commented: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
           type: "COMMENT",
           link: `/home`,
         },
       });
-      
+
       // Emit real-time notification via socket
       io.to(post.authorId).emit("newNotification", notification);
     }

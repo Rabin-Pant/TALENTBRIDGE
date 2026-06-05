@@ -549,7 +549,7 @@ export const approveEmployer = async (req, res) => {
   }
 };
 
-// ─── GET USER STATISTICS (NEW) ───────────────────────
+// ─── GET USER STATISTICS ───────────────────────
 export const getUserStatistics = async (req, res) => {
   try {
     const stats = await prisma.$transaction([

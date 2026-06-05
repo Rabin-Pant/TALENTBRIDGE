@@ -22,6 +22,8 @@ const storage = multer.diskStorage({
       uploadPath = "uploads/documents/";
     } else if (file.fieldname === "profilePicture") {
       uploadPath = "uploads/profiles/";
+    } else if (file.fieldname === "coverPicture") {
+      uploadPath = "uploads/profiles/";  // ← ADD THIS
     }
     
     ensureDirectoryExists(uploadPath);
@@ -43,6 +45,13 @@ const fileFilter = (req, file, cb) => {
       cb(null, true);
     } else {
       cb(new Error("Only images are allowed for profile picture"));
+    }
+  } else if (file.fieldname === "coverPicture") {  // ← ADD THIS
+    const allowed = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only images are allowed for cover picture"));
     }
   } else if (file.fieldname === "resume") {
     const allowed = [".pdf", ".doc", ".docx"];

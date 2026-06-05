@@ -227,6 +227,8 @@ export const getProfile = async (req, res) => {
         companySize: true,
         industry: true,
         companyDescription: true,
+        profilePicture: true,
+        coverPicture: true,
       },
     });
 
@@ -373,6 +375,82 @@ export const markAllNotificationsRead = async (req, res) => {
     });
 
     res.json({ message: "All notifications marked as read" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── UPLOAD PROFILE PICTURE ─────────────────────────
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const profilePicturePath = `profiles/${req.file.filename}`;
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { profilePicture: profilePicturePath },
+      select: { id: true, profilePicture: true }
+    });
+
+    res.json({ message: "Profile picture uploaded successfully", profilePicture: user.profilePicture });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── DELETE PROFILE PICTURE ─────────────────────────
+export const deleteProfilePicture = async (req, res) => {
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { profilePicture: null },
+      select: { id: true, profilePicture: true }
+    });
+
+    res.json({ message: "Profile picture removed", profilePicture: null });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── UPLOAD COVER PICTURE ─────────────────────────
+export const uploadCoverPicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const coverPicturePath = `profiles/${req.file.filename}`;
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { coverPicture: coverPicturePath },
+      select: { id: true, coverPicture: true }
+    });
+
+    res.json({ message: "Cover picture uploaded successfully", coverPicture: user.coverPicture });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── DELETE COVER PICTURE ─────────────────────────
+export const deleteCoverPicture = async (req, res) => {
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { coverPicture: null },
+      select: { id: true, coverPicture: true }
+    });
+
+    res.json({ message: "Cover picture removed", coverPicture: null });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

@@ -18,6 +18,8 @@ import {
   updateContact,
   uploadProfilePicture,
   deleteProfilePicture,
+  uploadCoverPicture,
+  deleteCoverPicture,
 } from "../controllers/seeker.controller.js";
 
 const router = express.Router();
@@ -37,14 +39,16 @@ router.put("/profile", updateProfile);
 router.post("/resume", upload.single("resume"), uploadResume);
 router.post("/profile-picture", upload.single("profilePicture"), uploadProfilePicture);
 router.delete("/profile-picture", deleteProfilePicture);
+router.post("/cover-picture", upload.single("coverPicture"), uploadCoverPicture);
+router.delete("/cover-picture", deleteCoverPicture);
 router.put("/contact", updateContact);
 
-// Notification routes (ALL ARE BEING USED)
+// Notification routes
 router.get("/notifications", getNotifications);
-router.put("/notifications/mark-read", markNotificationsRead);          
-router.put("/notifications/read-all", markAllNotificationsRead);         
-router.put("/notifications/:notificationId/read", markNotificationRead); 
-router.delete("/notifications/:notificationId", deleteNotification);     
-router.delete("/notifications", deleteAllNotifications);                
+router.put("/notifications/mark-read", markNotificationsRead);
+router.put("/notifications/:notificationId/read", markNotificationRead);
+router.delete("/notifications/:notificationId", deleteNotification);
+router.delete("/notifications", deleteAllNotifications);
+router.put("/notifications/read-all", markAllNotificationsRead);
 
 export default router;

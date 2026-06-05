@@ -4,7 +4,7 @@ import {
   MapPin, Mail, Phone, Briefcase, GraduationCap,
   Building2, Calendar, ArrowLeft, MessageCircle,
   UserPlus, UserCheck, UserX, Clock, Award,
-  Code, FileText, ExternalLink, Sparkles
+  Code, FileText, ExternalLink, Sparkles, X
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -23,18 +23,19 @@ const Avatar = ({ name, role, size = "lg", profilePicture }) => {
   
   if (profilePictureUrl) {
     return (
-      <div className={`${sizes[size]} rounded-full overflow-hidden flex-shrink-0 border-4 border-white shadow-lg`}>
+      <div className={`${sizes[size]} rounded-full overflow-hidden flex-shrink-0 border-4 border-white shadow-lg cursor-pointer hover:scale-105 transition-transform duration-300`}>
         <img src={profilePictureUrl} alt={name} className="w-full h-full object-cover" />
       </div>
     );
   }
   
   return (
-    <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0 border-4 border-white shadow-lg`}>
+    <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0 border-4 border-white shadow-lg transition-transform duration-300 hover:scale-105`}>
       <span className="text-white font-bold">{name?.charAt(0)?.toUpperCase()}</span>
     </div>
   );
 };
+
 const PublicProfile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useAuth();
@@ -49,6 +50,10 @@ const PublicProfile = () => {
   const [connecting, setConnecting] = useState(false);
   const [messaging, setMessaging] = useState(false);
   const [toast, setToast] = useState(null);
+  
+  // Modal states
+  const [showProfilePicModal, setShowProfilePicModal] = useState(false);
+  const [showCoverModal, setShowCoverModal] = useState(false);
 
   const isOwnProfile = userId === currentUser?.id;
 
@@ -114,90 +119,85 @@ const PublicProfile = () => {
   };
 
   const handleMessage = async () => {
-  try {
-    setMessaging(true);
-    console.log("Starting conversation with user:", userId);
-    
-    const res = await api.get(`/messages/conversations/${userId}/get-or-create`);
-    console.log("Conversation response:", res.data);
-    
-    if (res.data.conversation && res.data.conversation.id) {
-      // This will navigate directly to the messages page with the conversation open
-      navigate(`/messages/${res.data.conversation.id}`);
-    } else {
-      showToast("Could not start conversation", "error");
+    try {
+      setMessaging(true);
+      const res = await api.get(`/messages/conversations/${userId}/get-or-create`);
+      if (res.data.conversation && res.data.conversation.id) {
+        navigate(`/messages/${res.data.conversation.id}`);
+      } else {
+        showToast("Could not start conversation", "error");
+      }
+    } catch (err) {
+      console.error("Message error:", err);
+      showToast(err.response?.data?.message || "Failed to start conversation", "error");
+    } finally {
+      setMessaging(false);
     }
-  } catch (err) {
-    console.error("Message error:", err);
-    showToast(err.response?.data?.message || "Failed to start conversation", "error");
-  } finally {
-    setMessaging(false);
-  }
-};
+  };
 
-const ConnectButton = () => {
-  if (isOwnProfile) return null;
+  const ConnectButton = () => {
+    if (isOwnProfile) return null;
 
-  if (connStatus.status === "ACCEPTED") return (
-    <div className="flex items-center gap-2">
-      <span className="flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-600 rounded-xl text-sm font-medium border border-green-200">
-        <UserCheck size={15} /> Connected
-      </span>
+    if (connStatus.status === "ACCEPTED") return (
+      <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-600 rounded-xl text-sm font-medium border border-green-200">
+          <UserCheck size={15} /> Connected
+        </span>
+        <button
+          onClick={handleMessage}
+          disabled={messaging}
+          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          <MessageCircle size={15} />
+          {messaging ? "Opening..." : "Message"}
+        </button>
+      </div>
+    );
+
+    if (connStatus.status === "PENDING" && connStatus.isSender) return (
       <button
-        onClick={handleMessage}
-        disabled={messaging}
+        onClick={handleWithdraw}
+        className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+      >
+        <Clock size={15} /> Pending
+      </button>
+    );
+
+    if (connStatus.status === "PENDING" && !connStatus.isSender) return (
+      <div className="flex items-center gap-2">
+        <button
+          onClick={async () => {
+            await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "ACCEPT" });
+            setConnStatus({ ...connStatus, status: "ACCEPTED" });
+            showToast("Connection accepted!");
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+        >
+          <UserCheck size={15} /> Accept
+        </button>
+        <button
+          onClick={async () => {
+            await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "DECLINE" });
+            setConnStatus({ status: "NONE" });
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+        >
+          <UserX size={15} /> Decline
+        </button>
+      </div>
+    );
+
+    return (
+      <button
+        onClick={handleConnect}
+        disabled={connecting}
         className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
       >
-        <MessageCircle size={15} />
-        {messaging ? "Opening..." : "Message"}
+        <UserPlus size={15} />
+        {connecting ? "Sending..." : "Connect"}
       </button>
-    </div>
-  );
-
-  if (connStatus.status === "PENDING" && connStatus.isSender) return (
-    <button
-      onClick={handleWithdraw}
-      className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-    >
-      <Clock size={15} /> Pending
-    </button>
-  );
-
-  if (connStatus.status === "PENDING" && !connStatus.isSender) return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={async () => {
-          await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "ACCEPT" });
-          setConnStatus({ ...connStatus, status: "ACCEPTED" });
-          showToast("Connection accepted!");
-        }}
-        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-      >
-        <UserCheck size={15} /> Accept
-      </button>
-      <button
-        onClick={async () => {
-          await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "DECLINE" });
-          setConnStatus({ status: "NONE" });
-        }}
-        className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-      >
-        <UserX size={15} /> Decline
-      </button>
-    </div>
-  );
-
-  return (
-    <button
-      onClick={handleConnect}
-      disabled={connecting}
-      className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-    >
-      <UserPlus size={15} />
-      {connecting ? "Sending..." : "Connect"}
-    </button>
-  );
-};
+    );
+  };
 
   const timeAgo = (date) => {
     const diff = Date.now() - new Date(date).getTime();
@@ -227,10 +227,51 @@ const ConnectButton = () => {
   const education = profile?.education || [];
   const workExperience = profile?.workExperience || [];
 
+  const profilePictureUrl = profile?.profilePicture ? `http://localhost:5000/uploads/${profile.profilePicture}` : null;
+  const coverPictureUrl = profile?.coverPicture ? `http://localhost:5000/uploads/${profile.coverPicture}` : null;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <Sidebar />
+
+      {/* Profile Picture Modal */}
+      {showProfilePicModal && profilePictureUrl && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowProfilePicModal(false)}>
+          <div className="relative max-w-3xl max-h-[90vh]">
+            <button
+              onClick={() => setShowProfilePicModal(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <X size={24} />
+            </button>
+            <img 
+              src={profilePictureUrl} 
+              alt={profile?.fullName}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Cover Photo Modal */}
+      {showCoverModal && coverPictureUrl && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowCoverModal(false)}>
+          <div className="relative max-w-5xl max-h-[90vh]">
+            <button
+              onClick={() => setShowCoverModal(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <X size={24} />
+            </button>
+            <img 
+              src={coverPictureUrl} 
+              alt="Cover"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className={`fixed top-20 right-4 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium ${
@@ -254,22 +295,66 @@ const ConnectButton = () => {
 
           {/* Hero Card */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
-            {/* Banner */}
-            <div className={`h-28 bg-gradient-to-r ${
-              profile?.role === "EMPLOYER"
-                ? "from-green-400 via-teal-500 to-blue-500"
-                : "from-blue-400 via-purple-500 to-pink-500"
-            }`} />
+            
+            {/* Cover Photo */}
+            <div 
+              className="relative h-40 bg-gray-200 overflow-hidden cursor-pointer group/cover"
+              onClick={() => coverPictureUrl && setShowCoverModal(true)}
+            >
+              {coverPictureUrl ? (
+                <img 
+                  src={coverPictureUrl} 
+                  alt="Cover"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className={`w-full h-full bg-gradient-to-r ${
+                  profile?.role === "EMPLOYER"
+                    ? "from-green-400 via-teal-500 to-blue-500"
+                    : "from-blue-400 via-purple-500 to-pink-500"
+                }`} />
+              )}
+              {coverPictureUrl && (
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">Click to view full size</span>
+                </div>
+              )}
+            </div>
 
+            {/* Profile Picture - Overlapping the cover */}
             <div className="px-6 pb-6">
-              <div className="flex items-end justify-between -mt-10 mb-4 flex-wrap gap-3">
-               <Avatar 
-  name={profile?.fullName} 
-  role={profile?.role} 
-  size="lg"
-  profilePicture={profile?.profilePicture}
-/>
-                <ConnectButton />
+              <div className="flex items-end justify-between -mt-12 mb-4 flex-wrap gap-3">
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => profilePictureUrl && setShowProfilePicModal(true)}
+                >
+                  <Avatar 
+                    name={profile?.fullName} 
+                    role={profile?.role} 
+                    size="lg"
+                    profilePicture={profile?.profilePicture}
+                  />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <ConnectButton />
+                  {!isOwnProfile && connStatus.status === "ACCEPTED" && (
+                    <button
+                      onClick={handleMessage}
+                      disabled={messaging}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      <MessageCircle size={15} /> Message
+                    </button>
+                  )}
+                  {isOwnProfile && (
+                    <Link
+                      to={profile?.role === "SEEKER" ? "/seeker/profile" : "/employer/profile"}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                    >
+                      Edit Profile
+                    </Link>
+                  )}
+                </div>
               </div>
 
               <h1 className="text-xl font-bold text-gray-900">{profile?.fullName || "User"}</h1>
@@ -490,12 +575,12 @@ const ConnectButton = () => {
                 posts.map((post) => (
                   <div key={post.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <div className="flex items-center gap-2 mb-3">
-                     <Avatar 
-  name={profile?.fullName} 
-  role={profile?.role} 
-  size="sm"
-  profilePicture={profile?.profilePicture}
-/>
+                      <Avatar 
+                        name={profile?.fullName} 
+                        role={profile?.role} 
+                        size="sm"
+                        profilePicture={profile?.profilePicture}
+                      />
                       <div>
                         <p className="font-semibold text-gray-900 text-sm">{profile?.fullName}</p>
                         <p className="text-xs text-gray-400">{timeAgo(post.createdAt)}</p>

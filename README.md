@@ -111,47 +111,18 @@ TalentBridge is a full-stack job portal platform that connects job seekers with 
 ## 📁 Project Structure
 ```
 TalentBridge/
+│
 ├── client/ # React Frontend
 │ ├── src/
 │ │ ├── api/ # API configuration
-│ │ │ ├── axios.js # Axios instance
-│ │ │ └── socket.js # Socket.io client
 │ │ ├── components/ # Reusable components
-│ │ │ ├── Navbar.jsx # Navigation bar
-│ │ │ ├── Sidebar.jsx # Sidebar menu
-│ │ │ ├── ProtectedRoute.jsx # Route protection
-│ │ │ └── AnimatedBackground.jsx # Background animations
 │ │ ├── context/ # React context
-│ │ │ └── AuthContext.jsx # Authentication context
 │ │ ├── pages/ # Page components
 │ │ │ ├── auth/ # Authentication pages
-│ │ │ │ ├── Login.jsx
-│ │ │ │ ├── Register.jsx
-│ │ │ │ ├── ResetPassword.jsx
-│ │ │ │ └── ChangePassword.jsx
 │ │ │ ├── shared/ # Shared pages
-│ │ │ │ ├── Home.jsx
-│ │ │ │ ├── Network.jsx
-│ │ │ │ ├── Messages.jsx
-│ │ │ │ └── PublicProfile.jsx
 │ │ │ ├── seeker/ # Seeker pages
-│ │ │ │ ├── Jobs.jsx
-│ │ │ │ ├── JobDetail.jsx
-│ │ │ │ ├── Applications.jsx
-│ │ │ │ ├── Profile.jsx
-│ │ │ │ └── Notifications.jsx
 │ │ │ ├── employer/ # Employer pages
-│ │ │ │ ├── Jobs.jsx
-│ │ │ │ ├── PostJob.jsx
-│ │ │ │ ├── Applicants.jsx
-│ │ │ │ ├── ApplicantDetail.jsx
-│ │ │ │ ├── Profile.jsx
-│ │ │ │ └── Notifications.jsx
 │ │ │ └── admin/ # Admin pages
-│ │ │ ├── Dashboard.jsx
-│ │ │ ├── Users.jsx
-│ │ │ ├── Jobs.jsx
-│ │ │ └── Applications.jsx
 │ │ ├── App.jsx # Main app component
 │ │ ├── main.jsx # Entry point
 │ │ └── index.css # Global styles
@@ -162,28 +133,9 @@ TalentBridge/
 ├── server/ # Express Backend
 │ ├── src/
 │ │ ├── config/ # Configuration
-│ │ │ └── db.js # Prisma client
 │ │ ├── controllers/ # Business logic
-│ │ │ ├── auth.controller.js
-│ │ │ ├── seeker.controller.js
-│ │ │ ├── employer.controller.js
-│ │ │ ├── admin.controller.js
-│ │ │ ├── feed.controller.js
-│ │ │ ├── connection.controller.js
-│ │ │ └── message.controller.js
 │ │ ├── middleware/ # Express middleware
-│ │ │ ├── auth.middleware.js
-│ │ │ ├── role.middleware.js
-│ │ │ ├── security.middleware.js
-│ │ │ └── upload.middleware.js
 │ │ ├── routes/ # API routes
-│ │ │ ├── auth.routes.js
-│ │ │ ├── seeker.routes.js
-│ │ │ ├── employer.routes.js
-│ │ │ ├── admin.routes.js
-│ │ │ ├── feed.routes.js
-│ │ │ ├── connection.routes.js
-│ │ │ └── message.routes.js
 │ │ └── server.js # Server entry point
 │ ├── prisma/
 │ │ └── schema.prisma # Database schema
@@ -195,6 +147,7 @@ TalentBridge/
 │ ├── package.json
 │ └── .env
 │
+├── .gitignore
 └── README.md
 ```
 
@@ -214,11 +167,16 @@ git clone https://github.com/Rabin-Pant/TALENTBRIDGE
 cd TalentBridge
 
 
-Step 2: Install Backend Dependencies
+### Step 2: Install Backend Dependencies
+
+```bash
 cd server
 npm install
 
+
 Step 3: Install Frontend Dependencies
+
+```bash
 cd ../client
 npm install
 
