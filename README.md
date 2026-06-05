@@ -216,8 +216,48 @@ FRONTEND_URL=http://localhost:5173
 ```
 
 🏃 Running the Application
+
 Start Backend Server
 ```
 cd server
 npm run dev
 ```
+
+Start Frontend Development Server
+```
+cd client
+npm run dev
+```
+
+Build for Production
+```
+# Build frontend
+cd client
+npm run build
+
+# Start backend with production config
+cd ../server
+npm start
+```
+
+🔒 Security Features
+
+JWT-based authentication
+
+Password hashing with bcrypt
+
+Rate limiting on login attempts
+
+Input sanitization
+
+SQL injection protection (Prisma ORM)
+
+XSS protection
+
+CORS configuration
+
+Role-based access control
+
+Session management
+
+<div align="center"> Made with ❤️ by TalentBridge Team </div>
