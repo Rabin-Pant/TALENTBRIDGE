@@ -1,15 +1,42 @@
 import { useState, useEffect } from "react";
-import { Bell, CheckCircle, Briefcase, TrendingUp, Settings, Sparkles, Trash2, CheckCheck, X, AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Bell, CheckCircle, Briefcase, TrendingUp, Settings, Sparkles, Trash2, CheckCheck, X, AlertTriangle, UserPlus, Users } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
 import { formatDistanceToNow } from "date-fns";
 
 const TYPE_ICON = {
-  APPLICATION:   { icon: Briefcase,   bg: "bg-blue-100",   color: "text-blue-600"   },
-  STATUS_UPDATE: { icon: TrendingUp,  bg: "bg-amber-100",  color: "text-amber-600"  },
-  JOB_MATCH:     { icon: Sparkles,    bg: "bg-purple-100", color: "text-purple-600" },
-  SYSTEM:        { icon: Settings,    bg: "bg-gray-100",   color: "text-gray-600"   },
+  APPLICATION:      { icon: Briefcase,   bg: "bg-blue-100",   color: "text-blue-600"   },
+  STATUS_UPDATE:    { icon: TrendingUp,  bg: "bg-amber-100",  color: "text-amber-600"  },
+  JOB_MATCH:        { icon: Sparkles,    bg: "bg-purple-100", color: "text-purple-600" },
+  CONNECTION_REQUEST: { icon: UserPlus,  bg: "bg-green-100",  color: "text-green-600"  },
+  CONNECTION_ACCEPTED: { icon: Users,    bg: "bg-green-100",  color: "text-green-600"  },
+  SYSTEM:           { icon: Settings,    bg: "bg-gray-100",   color: "text-gray-600"   },
+};
+
+const getNotificationLink = (notification) => {
+  // If notification has a custom link, use it
+  if (notification.link) return notification.link;
+  
+  // Otherwise determine based on type
+  switch (notification.type) {
+    case "APPLICATION":
+      return "/seeker/applications";
+    case "STATUS_UPDATE":
+      return "/seeker/applications";
+    case "JOB_MATCH":
+      return "/seeker/jobs";
+    case "CONNECTION_REQUEST":
+      return "/network";
+    case "CONNECTION_ACCEPTED":
+      return "/network";
+    case "LIKE":
+    case "COMMENT":
+      return "/home";
+    default:
+      return "#";
+  }
 };
 
 const SeekerNotifications = () => {
@@ -215,48 +242,63 @@ const SeekerNotifications = () => {
             <div className="space-y-3">
               {notifications.map((n, i) => {
                 const { icon: Icon, bg, color } = TYPE_ICON[n.type] || TYPE_ICON.SYSTEM;
+                const redirectLink = getNotificationLink(n);
+                
                 return (
                   <div
                     key={n.id}
-                    className={`bg-white rounded-2xl border shadow-sm p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+                    className={`bg-white rounded-2xl border shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
                       !n.read ? "border-blue-100 bg-blue-50/30" : "border-gray-100"
                     }`}
                     style={{ animationDelay: `${i * 60}ms` }}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className={`w-10 h-10 ${bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                        <Icon size={18} className={color} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-medium text-gray-900 text-sm">{n.title}</p>
-                            <p className="text-gray-500 text-sm mt-0.5">{n.message}</p>
-                            <p className="text-gray-400 text-xs mt-1.5">
-                              {formatTime(n.createdAt)}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            {!n.read && (
+                    <div className="p-4">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-10 h-10 ${bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                          <Icon size={18} className={color} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900 text-sm">{n.title}</p>
+                              <p className="text-gray-500 text-sm mt-0.5">{n.message}</p>
+                              <p className="text-gray-400 text-xs mt-1.5">
+                                {formatTime(n.createdAt)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {!n.read && (
+                                <button
+                                  onClick={() => markAsRead(n.id)}
+                                  className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
+                                  title="Mark as read"
+                                >
+                                  <CheckCircle size={14} className="text-blue-500" />
+                                </button>
+                              )}
                               <button
-                                onClick={() => markAsRead(n.id)}
-                                className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
-                                title="Mark as read"
+                                onClick={() => {
+                                  setSelectedNotification(n);
+                                  setShowDeleteModal(true);
+                                }}
+                                className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
+                                title="Delete"
                               >
-                                <CheckCircle size={14} className="text-blue-500" />
+                                <Trash2 size={14} className="text-gray-400 hover:text-red-500" />
                               </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                setSelectedNotification(n);
-                                setShowDeleteModal(true);
-                              }}
-                              className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={14} className="text-gray-400 hover:text-red-500" />
-                            </button>
+                            </div>
                           </div>
+                          
+                          {/* Clickable Link Button */}
+                          {redirectLink !== "#" && (
+                            <Link
+                              to={redirectLink}
+                              onClick={() => markAsRead(n.id)}
+                              className="inline-block mt-3 text-xs text-blue-600 hover:underline font-medium"
+                            >
+                              View details →
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </div>

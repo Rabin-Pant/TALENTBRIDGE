@@ -15,7 +15,6 @@ const seekerLinks = [
   { to: "/seeker/jobs",           icon: Briefcase,     label: "Browse Jobs"   },
   { to: "/seeker/applications",   icon: FileText,      label: "Applications"  },
   { to: "/messages",              icon: MessageCircle, label: "Messages"      },
-  { to: "/seeker/notifications",  icon: Bell,          label: "Notifications" },
   { to: "/seeker/profile",        icon: User,          label: "Profile"       },
 ];
 
@@ -26,7 +25,6 @@ const employerLinks = [
   { to: "/employer/jobs/post",    icon: PlusCircle,    label: "Post a Job"    },
   { to: "/employer/applicants",   icon: Users,         label: "Applicants"    },
   { to: "/messages",              icon: MessageCircle, label: "Messages"      },
-  { to: "/employer/notifications",icon: Bell,          label: "Notifications" },
   { to: "/employer/profile",      icon: User,          label: "Company Profile"},
 ];
 
@@ -119,7 +117,7 @@ const Sidebar = () => {
           >
             <Icon size={18} className="flex-shrink-0" />
             <span className="flex-1">{label}</span>
-            {/* Unread Message Badge */}
+            {/* Unread Message Badge - Only for Messages */}
             {label === "Messages" && unreadMessageCount > 0 && (
               <span className="bg-blue-600 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center animate-pulse">
                 {unreadMessageCount > 99 ? "99+" : unreadMessageCount}

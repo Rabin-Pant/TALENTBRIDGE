@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { Eye, EyeOff, Briefcase, Sparkles, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Briefcase, ArrowRight } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
 
@@ -12,11 +12,20 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 100);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   const onSubmit = async (data) => {
@@ -39,16 +48,43 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated Background Elements */}
+      {/* Animated 3D Background Elements - Blue Theme */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: "1s" }}></div>
+        {/* Floating circles */}
+        <div className="absolute w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-float"
+             style={{ top: '10%', left: '5%', animationDuration: '8s' }} />
+        <div className="absolute w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float-delayed"
+             style={{ bottom: '10%', right: '5%', animationDuration: '10s' }} />
+        <div className="absolute w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-25 animate-float-slow"
+             style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', animationDuration: '12s' }} />
+        
+        {/* 3D floating shapes that follow mouse */}
+        <div className="absolute top-20 left-10 w-24 h-24 bg-gradient-to-r from-blue-300 to-blue-400 rounded-xl opacity-20 animate-rotate"
+             style={{ transform: `translate(${mousePosition.x * 0.02}px, ${mousePosition.y * 0.02}px)` }} />
+        <div className="absolute bottom-20 right-10 w-32 h-32 bg-gradient-to-r from-purple-300 to-indigo-400 rounded-full opacity-15 animate-spin-slow"
+             style={{ transform: `translate(${mousePosition.x * -0.015}px, ${mousePosition.y * -0.015}px)` }} />
+        <div className="absolute top-1/3 left-1/4 w-20 h-20 bg-gradient-to-r from-cyan-300 to-blue-400 rounded-lg opacity-20 animate-bounce-slow"
+             style={{ transform: `translate(${mousePosition.x * 0.01}px, ${mousePosition.y * 0.01}px)` }} />
+        
+        {/* Floating particles */}
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-blue-400 rounded-full opacity-30 animate-particle"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${3 + Math.random() * 5}s`
+            }}
+          />
+        ))}
       </div>
 
-      <div className={`w-full max-w-md transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl mb-4 shadow-lg transform transition-transform duration-300 hover:scale-110">
+      <div className={`w-full max-w-md relative z-10 transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+        {/* Logo with 3D hover effect */}
+        <div className="text-center mb-8 group perspective-1000">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl mb-4 shadow-lg transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-blue-500/30">
             <Briefcase className="text-white" size={28} />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
@@ -57,8 +93,8 @@ const Login = () => {
           <p className="text-gray-500 mt-2">Sign in to your TalentBridge account</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 backdrop-blur-sm hover:shadow-2xl transition-all duration-300">
+        {/* Card with subtle glass effect */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-8 transition-all duration-500 hover:shadow-2xl">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm animate-shake">
               {error}
@@ -114,7 +150,7 @@ const Login = () => {
               </Link>
             </div>
 
-            {/* Submit */}
+            {/* Submit Button with hover animation */}
             <button
               type="submit"
               disabled={loading}
@@ -133,17 +169,7 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white text-gray-400">or</span>
-            </div>
-          </div>
-
-          <p className="text-center text-sm text-gray-500 mt-4">
+          <p className="text-center text-sm text-gray-500 mt-6">
             Don't have an account?{" "}
             <Link to="/register" className="text-blue-600 font-medium hover:text-blue-700 hover:underline transition-colors duration-200">
               Sign up
@@ -154,20 +180,82 @@ const Login = () => {
 
       <style jsx>{`
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-5px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-5px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-5px); }
           75% { transform: translateX(5px); }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-30px) scale(1.05); }
+        }
+        
+        @keyframes float-delayed {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(30px) scale(1.05); }
+        }
+        
+        @keyframes float-slow {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50% { transform: translate(-50%, -50%) scale(1.1); }
+        }
+        
+        @keyframes rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+        }
+        
+        @keyframes particle {
+          0% { transform: translateY(0px) translateX(0px); opacity: 0; }
+          50% { opacity: 0.5; }
+          100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
+        }
+        
+        .animate-float {
+          animation: float 8s ease-in-out infinite;
+        }
+        
+        .animate-float-delayed {
+          animation: float-delayed 10s ease-in-out infinite;
+        }
+        
+        .animate-float-slow {
+          animation: float-slow 12s ease-in-out infinite;
+        }
+        
+        .animate-rotate {
+          animation: rotate 20s linear infinite;
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 25s linear infinite;
+        }
+        
+        .animate-bounce-slow {
+          animation: bounce-slow 4s ease-in-out infinite;
+        }
+        
+        .animate-particle {
+          animation: particle 4s ease-in-out infinite;
+        }
+        
+        .perspective-1000 {
+          perspective: 1000px;
         }
         
         .animate-fadeIn {
