@@ -194,29 +194,30 @@ npx prisma generate
 mkdir -p uploads/resumes uploads/profiles uploads/posts uploads/documents
 ```
 
-#🔧 Environment Variables
+🔧 Environment Variables
 
 Backend (.env in /server)
-
-# Server Configuration
+```
+## Server Configuration
 
 PORT=5000
 
-# Database
+## Database
 
 DATABASE_URL="postgresql://username:password@localhost:5432/talentbridge"
 
-# JWT
+## JWT
 
 JWT_SECRET=your_super_secret_jwt_key_here
 
-# Frontend URL
+## Frontend URL
 
 FRONTEND_URL=http://localhost:5173
+```
 
-
-Frontend (.env in /client)
-VITE_API_URL=http://localhost:5000/api
-
-
-🗄️ Database Schema
+🏃 Running the Application
+Start Backend Server
+```
+cd server
+npm run dev
+```
