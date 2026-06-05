@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![TalentBridge Logo](https://via.placeholder.com/150x150?text=TalentBridge)
-
 **Connect Talent with Opportunity**
 
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
