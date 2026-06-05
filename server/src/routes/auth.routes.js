@@ -2,7 +2,14 @@ import express from "express";
 import path from "path";
 import multer from "multer";
 import rateLimit from "express-rate-limit";
-import { register, login, getMe } from "../controllers/auth.controller.js";
+import { 
+  register, 
+  login, 
+  getMe, 
+  changePassword,
+  checkEmail,
+  resetPasswordDirect
+} from "../controllers/auth.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { fileURLToPath } from "url";
 
@@ -11,8 +18,7 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-// ─── CUSTOM RATE LIMITER THAT ONLY COUNTS FAILED LOGINS ───
-// This stores failed attempts in memory and resets on successful login
+// Rate limiter setup (keep your existing ones)
 const failedAttempts = new Map();
 
 const loginLimiter = async (req, res, next) => {
@@ -22,13 +28,11 @@ const loginLimiter = async (req, res, next) => {
   
   const attempts = failedAttempts.get(key) || { count: 0, firstAttempt: Date.now() };
   
-  // Reset if more than 15 minutes have passed
   if (Date.now() - attempts.firstAttempt > 15 * 60 * 1000) {
     attempts.count = 0;
     attempts.firstAttempt = Date.now();
   }
   
-  // Check if blocked
   if (attempts.count >= 5) {
     const waitTime = Math.ceil((15 * 60 * 1000 - (Date.now() - attempts.firstAttempt)) / 1000 / 60);
     return res.status(429).json({ 
@@ -36,28 +40,22 @@ const loginLimiter = async (req, res, next) => {
     });
   }
   
-  // Store attempts for potential failure
   req.rateLimitKey = key;
   req.rateLimitAttempts = attempts;
   next();
 };
 
-// Middleware to record failed attempt or clear on success
 const handleLoginAttempt = (req, res, next) => {
-  // Store original json method
   const originalJson = res.json;
   
   res.json = function(data) {
-    // Check if login was successful (has token in response)
     const isSuccess = data && data.token;
     
     if (isSuccess) {
-      // On successful login, clear failed attempts for this email+IP
       const key = `${req.ip}-${req.body.email?.toLowerCase()}`;
       failedAttempts.delete(key);
       console.log(`Login successful - cleared failed attempts for ${req.body.email}`);
     } else if (res.statusCode >= 400 && res.statusCode < 500) {
-      // On failed login, increment counter
       const attempts = failedAttempts.get(req.rateLimitKey);
       if (attempts) {
         attempts.count++;
@@ -76,9 +74,8 @@ const handleLoginAttempt = (req, res, next) => {
   next();
 };
 
-// Rate limiter for registration
 const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 60 * 60 * 1000,
   max: 3,
   message: { message: "Too many registration attempts. Please try again after an hour." },
   standardHeaders: true,
@@ -114,8 +111,10 @@ const upload = multer({
 // ─── ROUTES ───
 router.post("/register", registerLimiter, register);
 router.post("/login", loginLimiter, handleLoginAttempt, login);
+router.post("/check-email", checkEmail);
+router.post("/reset-password-direct", resetPasswordDirect);
+router.put("/change-password", authMiddleware, changePassword);
 router.get("/me", authMiddleware, getMe);
-
 router.post("/upload-company-doc", upload.single("companyDocument"), (req, res) => {
   try {
     if (!req.file) {
@@ -128,7 +127,6 @@ router.post("/upload-company-doc", upload.single("companyDocument"), (req, res) 
   }
 });
 
-// Optional: Endpoint to clear failed attempts (for testing)
 router.post("/clear-login-attempts", (req, res) => {
   const email = req.body.email?.toLowerCase();
   const ip = req.ip;

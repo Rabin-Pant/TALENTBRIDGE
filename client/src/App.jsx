@@ -6,6 +6,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login           from "./pages/auth/Login";
 import Register        from "./pages/auth/Register";
 import PendingApproval from "./pages/auth/PendingApproval";
+import ResetPassword from "./pages/auth/ResetPassword";
+import ChangePassword from "./pages/auth/ChangePassword";
 
 // Shared
 import Home            from "./pages/shared/Home";
@@ -48,6 +50,8 @@ const App = () => (
     <Route path="/login"              element={<Login />} />
     <Route path="/register"           element={<Register />} />
     <Route path="/pending-approval"   element={<PendingApproval />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
     {/* Shared (Seeker + Employer) */}
     <Route path="/home"               element={<ProtectedRoute><Home /></ProtectedRoute>} />

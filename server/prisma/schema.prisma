@@ -75,6 +75,8 @@ model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
+  resetPasswordToken   String?   @unique
+  resetPasswordExpires DateTime?
   fullName  String
   role      Role     @default(SEEKER)
   active    Boolean  @default(true)

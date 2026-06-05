@@ -346,9 +346,9 @@ const Register = () => {
                     {...register("email", {
                       required: "Email is required",
                       pattern: {
-                        value: /^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook|hotmail)\.com$/,
-                        message: "Must be @gmail.com, @yahoo.com etc.",
-                      },
+  value: /^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/,
+  message: "Please enter a valid email address",
+},
                     })}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 group-hover:border-blue-300"
                     placeholder="you@gmail.com"

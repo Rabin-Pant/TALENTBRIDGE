@@ -145,9 +145,9 @@ else if (role === "ADMIN") navigate("/admin/dashboard");
 
             {/* Forgot Password Link */}
             <div className="text-right">
-              <Link to="/forgot-password" className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors duration-200">
-                Forgot password?
-              </Link>
+              <Link to="/reset-password" className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors duration-200">
+  Forgot password?
+</Link>
             </div>
 
             {/* Submit Button with hover animation */}
