@@ -61,10 +61,12 @@ enum ApplicationStatus {
 }
 
 enum NotificationType {
-  APPLICATION       // employer gets this when someone applies
-  STATUS_UPDATE     // seeker gets this when status changes
-  JOB_MATCH         // seeker gets this for relevant jobs
-  SYSTEM            // admin broadcasts
+  APPLICATION
+  STATUS_UPDATE
+  JOB_MATCH
+  SYSTEM
+  LIKE        
+  COMMENT     
 }
 
 // ─────────────────────────────────────────

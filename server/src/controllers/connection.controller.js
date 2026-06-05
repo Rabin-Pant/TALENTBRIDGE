@@ -169,14 +169,14 @@ export const sendRequest = async (req, res) => {
 
     // Create notification in database
     const notification = await prisma.notification.create({
-      data: {
-        recipientId: receiverId,
-        title: "New Connection Request",
-        message: `${sender.fullName} sent you a connection request`,
-        type: "SYSTEM",
-        link: "/network",
-      },
-    });
+  data: {
+    recipientId: receiverId,
+    title: "New Connection Request",
+    message: `${sender.fullName} sent you a connection request`,
+    type: "SYSTEM",
+    link: "/network",
+  },
+});
 
     // Emit real-time notification
     io.to(receiverId).emit("newNotification", notification);

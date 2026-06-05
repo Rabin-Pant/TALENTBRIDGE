@@ -10,6 +10,7 @@ import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
+import { useLocation } from "react-router-dom";
 
 const POST_TYPES = [
   { value: "UPDATE",       label: "Share Update",     icon: FileText,  color: "blue"   },
@@ -200,6 +201,7 @@ const CommentSection = ({ postId, initialComments = [], initialCount = 0 }) => {
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const inputRef = useRef(null); 
 
   const loadAll = async () => {
     if (fetching) return;
@@ -274,6 +276,7 @@ const CommentSection = ({ postId, initialComments = [], initialCount = 0 }) => {
         <Avatar name={user?.fullName} role={user?.role} size="sm" />
         <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-full px-4 py-2 hover:bg-gray-100 transition-all duration-200">
           <input
+            ref={inputRef} 
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -406,14 +409,15 @@ const PostCard = ({ post, onDelete }) => {
               {likesCount}
             </span>
           )}
-          {post._count?.comments > 0 && (
-            <button
-              onClick={() => setShowComments(!showComments)}
-              className="ml-auto hover:text-blue-600 transition-all duration-200"
-            >
-              {post._count.comments} comment{post._count.comments > 1 ? "s" : ""}
-            </button>
-          )}
+         {post._count?.comments > 0 && (
+  <button
+    onClick={() => setShowComments(!showComments)}
+    data-comment-button  
+    className="ml-auto hover:text-blue-600 transition-all duration-200"
+  >
+    {post._count.comments} comment{post._count.comments > 1 ? "s" : ""}
+  </button>
+)}
         </div>
       )}
 
@@ -488,6 +492,8 @@ const Home = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [suggestions, setSuggestions] = useState([]);
+  const location = useLocation();
+  const [scrollToPostId, setScrollToPostId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -508,6 +514,53 @@ const Home = () => {
     };
     fetchData();
   }, []);
+
+  
+useEffect(() => {
+  // Check if there's a post parameter in URL (from notification click)
+  const params = new URLSearchParams(location.search);
+  const postId = params.get('post');
+  const hash = location.hash; // Check for #comments anchor
+  
+  if (postId && posts.length > 0) {
+    setTimeout(() => {
+      const postElement = document.getElementById(`post-${postId}`);
+      if (postElement) {
+        // Scroll to the post
+        postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Highlight the post
+        postElement.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2', 'animate-pulse');
+        
+        // If hash is #comments, open the comment section
+        if (hash === '#comments') {
+          // Find the comment button inside this post and click it
+          const commentButton = postElement.querySelector('[data-comment-button]');
+          if (commentButton) {
+            commentButton.click();
+          }
+          
+          // Also focus on the comment input after comments open
+         setTimeout(() => {
+  const commentInput = postElement.querySelector('input[placeholder*="Add a comment"]');
+  if (commentInput) {
+    commentInput.focus();
+    commentInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}, 500);
+        }
+        
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          postElement.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2', 'animate-pulse');
+        }, 3000);
+      }
+    }, 500);
+    
+    // Clean the URL (remove ?post=id from address bar)
+    window.history.replaceState({}, '', '/home');
+  }
+}, [location.search, location.hash, posts]);
 
   const loadMore = async () => {
     try {
@@ -565,10 +618,14 @@ const Home = () => {
               ) : (
                 <>
                   {posts.map((post, idx) => (
-                    <div key={post.id} style={{ animationDelay: `${idx * 100}ms` }}>
-                      <PostCard post={post} onDelete={handleDelete} />
-                    </div>
-                  ))}
+  <div 
+    key={post.id} 
+    id={`post-${post.id}`}
+    style={{ animationDelay: `${idx * 100}ms` }}
+  >
+    <PostCard post={post} onDelete={handleDelete} />
+  </div>
+))}
                   {hasMore && (
                     <button
                       onClick={loadMore}
