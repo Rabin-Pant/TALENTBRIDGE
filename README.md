@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![TalentBridge Logo](https://via.placeholder.com/150x150?text=TalentBridge)
-
 **Connect Talent with Opportunity**
 
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
@@ -162,51 +160,116 @@ TalentBridge/
 
 ### Step 1: Clone the Repository
 
-```bash
+```
 git clone https://github.com/Rabin-Pant/TALENTBRIDGE
 cd TalentBridge
+```
 
+<<<<<<< HEAD
 
 ### Step 2: Install Backend Dependencies
 
 ```bash
+=======
+### Step 2: Install Backend Dependencies
+```
+>>>>>>> 3b61839353e9ebfe6d090272fd04f1370d5a75d5
 cd server
 npm install
+```
 
+<<<<<<< HEAD
 
 Step 3: Install Frontend Dependencies
 
 ```bash
+=======
+### Step 3: Install Frontend Dependencies
+
+```
+>>>>>>> 3b61839353e9ebfe6d090272fd04f1370d5a75d5
 cd ../client
 npm install
+```
 
-Step 4: Set Up Database
+### Step 4: Set Up Database
+
+```
 cd ../server
 npx prisma migrate dev --name init
 npx prisma generate
+```
 
-Step 5: Create Upload Directories
+### Step 5: Create Upload Directories
+
+```
 mkdir -p uploads/resumes uploads/profiles uploads/posts uploads/documents
-
+```
 
 🔧 Environment Variables
-Backend (.env in /server)
 
-# Server Configuration
+Backend (.env in /server)
+```
+## Server Configuration
+
 PORT=5000
 
-# Database
+## Database
+
 DATABASE_URL="postgresql://username:password@localhost:5432/talentbridge"
 
-# JWT
+## JWT
+
 JWT_SECRET=your_super_secret_jwt_key_here
 
-# Frontend URL
+## Frontend URL
+
 FRONTEND_URL=http://localhost:5173
+```
 
+🏃 Running the Application
 
-Frontend (.env in /client)
-VITE_API_URL=http://localhost:5000/api
+Start Backend Server
+```
+cd server
+npm run dev
+```
 
+Start Frontend Development Server
+```
+cd client
+npm run dev
+```
 
-🗄️ Database Schema
+Build for Production
+```
+# Build frontend
+cd client
+npm run build
+
+# Start backend with production config
+cd ../server
+npm start
+```
+
+🔒 Security Features
+
+JWT-based authentication
+
+Password hashing with bcrypt
+
+Rate limiting on login attempts
+
+Input sanitization
+
+SQL injection protection (Prisma ORM)
+
+XSS protection
+
+CORS configuration
+
+Role-based access control
+
+Session management
+
+<div align="center"> Made with ❤️ by Rabin Pant </div>
