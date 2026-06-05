@@ -260,4 +260,4 @@ Role-based access control
 
 Session management
 
-<div align="center"> Made with ❤️ by TalentBridge Team </div>
+<div align="center"> Made with ❤️ by Rabin Pant </div>
