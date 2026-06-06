@@ -21,7 +21,8 @@ const sanitizeInput = (input) => {
 };
 
 const isValidEmail = (email) => {
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+ // strictly allow only gmail, yahoo, outlook, and hotmail
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook|hotmail)\.com$/;
   return emailRegex.test(email);
 };
 
@@ -66,6 +67,10 @@ export const register = async (req, res) => {
 
     if (phone && !/^(97|98)\d{8}$/.test(phone)) {
       return res.status(400).json({ message: "Phone number must start with 97 or 98 and be 10 digits" });
+    }
+
+    if (role === "EMPLOYER" && companyPhone && !/^(97|98)\d{8}$/.test(companyPhone)) {
+      return res.status(400).json({ message: "Company phone number must start with 97 or 98 and be exactly 10 digits" });
     }
 
     if (!password || password.length < 6) {
