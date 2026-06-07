@@ -15,17 +15,29 @@ const TYPE_ICON = {
 };
 
 const getNotificationLink = (notification) => {
+  // If notification has a custom link, use it
   if (notification.link) return notification.link;
   
+  // Otherwise determine based on type
   switch (notification.type) {
     case "APPLICATION":
       return "/employer/applicants";
     case "STATUS_UPDATE":
-      return "/employer/applicants";
+      return "/seeker/applications";
     case "CONNECTION_REQUEST":
       return "/network";
     case "CONNECTION_ACCEPTED":
       return "/network";
+    case "LIKE":
+      return "/home";
+    case "COMMENT":
+      return "/home";
+    case "SYSTEM":
+      // For system notifications like "Account Approved!"
+      if (notification.title === "Account Approved!") {
+       return "/home";
+      }
+      return notification.link || "/home";
     default:
       return "#";
   }

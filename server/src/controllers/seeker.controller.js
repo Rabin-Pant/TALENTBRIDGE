@@ -154,7 +154,7 @@ const notification = await prisma.notification.create({
     title: "New Application Received!",
     message: `${seeker.fullName} applied for ${job.title}`,
     type: "APPLICATION",
-    link: `/employer/applicants/${application.id}`, 
+   link: `/employer/applicants/${application.id}`,
   },
 });
 

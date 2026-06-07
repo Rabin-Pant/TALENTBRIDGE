@@ -41,9 +41,9 @@ const Login = () => {
       login(res.data.user, res.data.token);
 
       const role = res.data.user.role;
-      if (role === "SEEKER") navigate("/home");
-      else if (role === "EMPLOYER") navigate("/home");
-      else if (role === "ADMIN") navigate("/admin/dashboard");
+     if (role === "SEEKER") navigate("/home");
+     else if (role === "EMPLOYER") navigate("/home");
+     else if (role === "ADMIN") navigate("/admin/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     } finally {

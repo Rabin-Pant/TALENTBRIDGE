@@ -58,9 +58,9 @@ const App = () => (
     <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
     {/* Shared (Seeker + Employer) */}
-    <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
     <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />
     <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+    <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
     <Route path="/messages/:conversationId" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
     <Route path="/profile/:userId" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
 

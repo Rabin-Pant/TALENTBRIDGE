@@ -4,10 +4,10 @@ import roleMiddleware from "../middleware/role.middleware.js";
 import {
   getDashboard, getUsers, toggleUserStatus,
   deleteUser, getAllJobs, deleteJob,
-  getAllApplications, sendNotification, approveEmployer, getJobById,
+  getAllApplications, sendNotification, approveEmployer, getJobById, getLandingStats,
 } from "../controllers/admin.controller.js";
 
-// Import security middleware from the UPDATED file
+// Import security middleware
 import { 
   adminRateLimiter, 
   strictRateLimiter,
@@ -23,15 +23,17 @@ const router = express.Router();
 // Apply security headers to all admin routes
 router.use(securityHeaders);
 
-// Apply authentication and role check to ALL admin routes
+// ─── PUBLIC ROUTES (No authentication required) ───
+router.get("/landing-stats", getLandingStats);
+
+// ─── AUTHENTICATED ADMIN ROUTES ───
+// Apply authentication and role check to ALL admin routes AFTER this point
 router.use(authMiddleware, roleMiddleware("ADMIN"));
 
 // Apply rate limiting to all admin routes (protects from DDoS/brute force)
 router.use(adminRateLimiter);
 
-// ─── ADMIN ENDPOINTS ───
-
-// Dashboard (no additional validation needed)
+// Dashboard
 router.get("/dashboard", getDashboard);
 
 // User Management
@@ -42,8 +44,9 @@ router.delete("/users/:id", strictRateLimiter, validateUserId, deleteUser);
 
 // Job Management
 router.get("/jobs", validateSearchQuery, getAllJobs);
-router.delete("/jobs/:id", strictRateLimiter, validateUserId, deleteJob);
 router.get("/jobs/:id", getJobById);
+router.delete("/jobs/:id", strictRateLimiter, validateUserId, deleteJob);
+
 // Application Management
 router.get("/applications", validateSearchQuery, getAllApplications);
 

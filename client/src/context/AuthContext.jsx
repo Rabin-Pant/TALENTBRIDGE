@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     disconnectSocket();
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   return (

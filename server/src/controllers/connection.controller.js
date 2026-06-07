@@ -174,7 +174,7 @@ export const sendRequest = async (req, res) => {
     title: "New Connection Request",
     message: `${sender.fullName} sent you a connection request`,
     type: "SYSTEM",
-    link: "/network",
+    link: `/network`,
   },
 });
 

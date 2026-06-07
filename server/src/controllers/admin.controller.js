@@ -17,6 +17,139 @@ const validatePagination = (page, limit) => {
   return { page: validatedPage, limit: validatedLimit };
 };
 
+// ─── GET LANDING PAGE STATS ──────────────────────────
+export const getLandingStats = async (req, res) => {
+  try {
+    console.log("Fetching landing page stats...");
+    
+    // Get counts
+    const totalUsers = await prisma.user.count();
+    const totalSeekers = await prisma.user.count({ where: { role: "SEEKER" } });
+    const totalEmployers = await prisma.user.count({ where: { role: "EMPLOYER" } });
+    const activeJobs = await prisma.job.count({ where: { status: "ACTIVE" } });
+    const totalApplications = await prisma.application.count();
+    const acceptedApplications = await prisma.application.count({ where: { status: "ACCEPTED" } });
+
+    console.log("Stats:", {
+      totalUsers,
+      totalSeekers,
+      totalEmployers,
+      activeJobs,
+      totalApplications,
+      acceptedApplications
+    });
+
+    // Get recent jobs
+    const recentJobs = await prisma.job.findMany({
+      take: 6,
+      where: { status: "ACTIVE" },
+      orderBy: { postedAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        company: true,
+        location: true,
+        jobType: true,
+        postedAt: true,
+      },
+    });
+
+    // Get testimonials from real users
+    const usersWithJobs = await prisma.user.findMany({
+      where: {
+        role: "SEEKER",
+        applications: {
+          some: {
+            status: "ACCEPTED"
+          }
+        }
+      },
+      take: 3,
+      select: {
+        id: true,
+        fullName: true,
+        currentTitle: true,
+        profilePicture: true,
+        applications: {
+          where: { status: "ACCEPTED" },
+          take: 1,
+          include: {
+            job: {
+              select: { company: true, title: true }
+            }
+          }
+        }
+      }
+    });
+
+    let testimonials = [];
+    
+    if (usersWithJobs.length > 0) {
+      testimonials = usersWithJobs.map(user => ({
+        name: user.fullName,
+        role: user.currentTitle || "Professional",
+        company: user.applications[0]?.job?.company || "a Company",
+        content: `"TalentBridge helped me land a position at ${user.applications[0]?.job?.company || "a great company"}! The platform made my job search easy and effective."`,
+        rating: 5,
+        profilePicture: user.profilePicture
+      }));
+    } else {
+      // Fallback testimonials using existing users
+      const existingUsers = await prisma.user.findMany({
+        where: { role: "SEEKER" },
+        take: 3,
+        select: { id: true, fullName: true, currentTitle: true }
+      });
+      
+      if (existingUsers.length > 0) {
+        testimonials = existingUsers.map(user => ({
+          name: user.fullName,
+          role: user.currentTitle || "Job Seeker",
+          company: "Various Companies",
+          content: "TalentBridge is a great platform for finding job opportunities!",
+          rating: 5,
+          profilePicture: null
+        }));
+      } else {
+        testimonials = [
+          {
+            name: "Rabin Pant",
+            role: "Full Stack Developer",
+            company: "Tech Solutions",
+            content: "TalentBridge helped me find my dream job! The platform is amazing.",
+            rating: 5,
+            profilePicture: null
+          }
+        ];
+      }
+    }
+
+    res.json({
+      stats: {
+        totalJobs: activeJobs || 0,
+        totalSeekers: totalSeekers || 0,
+        totalEmployers: totalEmployers || 0,
+        totalHires: acceptedApplications || 0,
+      },
+      testimonials,
+      recentJobs: recentJobs || [],
+    });
+  } catch (err) {
+    console.error("Landing stats error:", err);
+    res.status(500).json({ 
+      stats: {
+        totalJobs: 0,
+        totalSeekers: 0,
+        totalEmployers: 0,
+        totalHires: 0,
+      },
+      testimonials: [],
+      recentJobs: [],
+      error: err.message 
+    });
+  }
+};
+
 // ─── DASHBOARD ───────────────────────────────────────
 export const getDashboard = async (req, res) => {
   try {
@@ -472,14 +605,14 @@ export const sendNotification = async (req, res) => {
     }
 
     const notification = await prisma.notification.create({
-      data: {
-        recipientId,
-        title: sanitizedTitle,
-        message: sanitizedMessage,
-        type: "SYSTEM",
-        link: sanitizedLink,
-      },
-    });
+  data: {
+    recipientId: user.id,
+    title: "Account Approved!",
+    message: "Your employer account has been approved. You can now post jobs and hire talent.",
+    type: "SYSTEM",
+    link: "/home",
+  },
+});
 
     // Log the action
     console.log(`Admin ${req.user.id} sent notification to ${recipientId}`);
