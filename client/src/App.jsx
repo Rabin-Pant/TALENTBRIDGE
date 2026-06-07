@@ -8,7 +8,13 @@ import Register        from "./pages/auth/Register";
 import PendingApproval from "./pages/auth/PendingApproval";
 import ResetPassword from "./pages/auth/ResetPassword";
 import ChangePassword from "./pages/auth/ChangePassword";
-import Landing from "./pages/auth/Landing"; 
+import Landing from "./pages/auth/Landing";
+
+//Static
+import About from "./pages/static/About";
+import Contact from "./pages/static/Contact";
+import PrivacyPolicy from "./pages/static/PrivacyPolicy";
+import Terms from "./pages/static/Terms";
 
 // Shared
 import Home            from "./pages/shared/Home";
@@ -56,6 +62,12 @@ const App = () => (
     <Route path="/pending-approval" element={<PendingApproval />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+
+    {/* Public static routes */}
+    <Route path="/about" element={<About />} />
+    <Route path="/contact" element={<Contact />} />
+    <Route path="/privacy" element={<PrivacyPolicy />} />
+    <Route path="/terms" element={<Terms />} />
 
     {/* Shared (Seeker + Employer) */}
     <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />

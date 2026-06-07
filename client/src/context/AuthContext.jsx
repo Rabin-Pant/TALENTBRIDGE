@@ -5,9 +5,18 @@ import { connectSocket, disconnectSocket } from "../api/socket";
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser]   = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
+
+  // Fetch full profile (includes profilePicture, coverPicture etc.)
+  const fetchFullProfile = async () => {
+    try {
+      const res = await api.get("/auth/me");
+      setUser(res.data.user);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+    } catch {}
+  };
 
   useEffect(() => {
     const initAuth = async () => {
@@ -17,25 +26,38 @@ export const AuthProvider = ({ children }) => {
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
         connectSocket(savedToken);
+        // Always fetch fresh profile so profilePicture is up to date
+        await fetchFullProfile();
       }
       setLoading(false);
     };
     initAuth();
   }, []);
 
-  const login = (userData, userToken) => {
+  const login = async (userData, userToken) => {
     setUser(userData);
     setToken(userToken);
     localStorage.setItem("token", userToken);
     localStorage.setItem("user", JSON.stringify(userData));
     connectSocket(userToken);
+    // Fetch full profile right after login
+    try {
+      const res = await api.get("/auth/me");
+      setUser(res.data.user);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+    } catch {}
   };
 
-  // Make sure this function exists
+  // Update specific user fields locally (used after profile edits)
   const updateUser = (updatedData) => {
     const newUser = { ...user, ...updatedData };
     setUser(newUser);
     localStorage.setItem("user", JSON.stringify(newUser));
+  };
+
+  // Full refresh from server (call after profile picture upload)
+  const refreshUser = async () => {
+    await fetchFullProfile();
   };
 
   const logout = () => {
@@ -48,7 +70,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, refreshUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

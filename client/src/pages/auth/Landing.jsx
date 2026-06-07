@@ -414,14 +414,14 @@ const Landing = () => {
                 <li><Link to="/register" className="hover:text-white transition">Hiring Solutions</Link></li>
               </ul>
             </div>
-            <div>
-              <h4 className="text-white font-semibold mb-3">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link to="/" className="hover:text-white transition">About Us</Link></li>
-                <li><Link to="/" className="hover:text-white transition">Contact</Link></li>
-                <li><Link to="/" className="hover:text-white transition">Privacy Policy</Link></li>
-              </ul>
-            </div>
+           <div>
+  <h4 className="text-white font-semibold mb-3">Company</h4>
+  <ul className="space-y-2 text-sm">
+    <li><Link to="/about" className="hover:text-white transition">About Us</Link></li>
+    <li><Link to="/contact" className="hover:text-white transition">Contact</Link></li>
+    <li><Link to="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
+  </ul>
+</div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
             <p>&copy; 2026 TalentBridge. All rights reserved.</p>

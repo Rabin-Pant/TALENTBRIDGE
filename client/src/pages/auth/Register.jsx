@@ -66,6 +66,7 @@ const Register = () => {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [visible, setVisible] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0, tiltX: 0, tiltY: 0 });
+  const [agreeToPolicy, setAgreeToPolicy] = useState(false);
 
   const { register, handleSubmit, trigger, formState: { errors } } = useForm();
 
@@ -142,6 +143,11 @@ const Register = () => {
   };
 
   const onSubmit = async (data) => {
+    if (!agreeToPolicy) {
+      setError("You must agree to the Privacy Policy and Terms of Service");
+      return;
+    }
+    
     try {
       setLoading(true);
       setError("");
@@ -178,7 +184,7 @@ const Register = () => {
       }
 
       login(res.data.user, res.data.token);
-      navigate("/seeker/dashboard");
+      navigate("/home");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
       setStep(1);
@@ -189,7 +195,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-[#f4f7fb] flex items-center justify-center p-4 relative overflow-hidden font-sans py-12">
-      {/* Immersive 3D Animated Background - Pure Blue Theme */}
+      {/* Immersive 3D Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none perspective-1000">
         <div className="absolute w-[40rem] h-[40rem] rounded-full mix-blend-multiply filter blur-[80px] animate-blob transition-colors duration-1000 bg-blue-500/20"
              style={{ top: '5%', left: '0%' }} />
@@ -229,7 +235,7 @@ const Register = () => {
             transition: 'transform 0.15s ease-out'
           }}
         >
-          {/* Logo Heading (Popped out) */}
+          {/* Logo Heading */}
           <div className="text-center mb-8 translate-z-30">
             <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl mb-4 shadow-[0_10px_25px_-5px_rgba(79,70,229,0.4)] transform transition-all duration-500 hover:scale-110 hover:rotate-[10deg]">
               <Briefcase className="text-white" size={28} />
@@ -358,36 +364,34 @@ const Register = () => {
                     </div>
 
                     <div className="group/input">
-  <label className="block text-sm font-semibold text-blue-900/80 mb-2">
-    <Mail size={14} className="inline mr-1.5 text-blue-400" />Email Address *
-  </label>
-  <input
-    type="email"
-    {...register("email", {
-      required: "Email is required",
-      pattern: {
-        value: /^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook|hotmail)\.com$/,
-        message: "Please enter a valid email address",
-      },
-      validate: {
-       
-        checkExists: async (value) => {
-          try {
-           
-            const res = await api.post("/auth/check-email", { email: value });
-            return !res.data.exists || "This email is already registered";
-          } catch (err) {
-            console.error("Email check failed", err);
-            return true; 
-          }
-        }
-      }
-    })}
-    className="w-full px-5 py-3.5 bg-white/60 backdrop-blur-sm border border-blue-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
-    placeholder="you@example.com"
-  />
-  {errors.email && <p className="text-red-500 text-xs mt-1.5 font-medium animate-fadeIn">{errors.email.message}</p>}
-</div>
+                      <label className="block text-sm font-semibold text-blue-900/80 mb-2">
+                        <Mail size={14} className="inline mr-1.5 text-blue-400" />Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        {...register("email", {
+                          required: "Email is required",
+                          pattern: {
+                            value: /^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook|hotmail)\.com$/,
+                            message: "Please enter a valid email address",
+                          },
+                          validate: {
+                            checkExists: async (value) => {
+                              try {
+                                const res = await api.post("/auth/check-email", { email: value });
+                                return !res.data.exists || "This email is already registered";
+                              } catch (err) {
+                                console.error("Email check failed", err);
+                                return true; 
+                              }
+                            }
+                          }
+                        })}
+                        className="w-full px-5 py-3.5 bg-white/60 backdrop-blur-sm border border-blue-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
+                        placeholder="you@example.com"
+                      />
+                      {errors.email && <p className="text-red-500 text-xs mt-1.5 font-medium animate-fadeIn">{errors.email.message}</p>}
+                    </div>
 
                     <div className="group/input">
                       <label className="block text-sm font-semibold text-blue-900/80 mb-2">
@@ -456,7 +460,7 @@ const Register = () => {
                   </div>
                 )}
 
-                {/* ── STEP 2 SEEKER: Personal Info ── */}
+                {/* ── STEP 2 SEEKER: Personal Info with Privacy Policy ── */}
                 {step === 2 && selectedRole === "SEEKER" && (
                   <div className="space-y-5">
                     <div className="grid grid-cols-2 gap-4">
@@ -501,12 +505,33 @@ const Register = () => {
                       {errors.location && <p className="text-red-500 text-xs mt-1.5 font-medium animate-fadeIn">{errors.location.message}</p>}
                     </div>
 
+                    {/* Privacy Policy Checkbox */}
+                    <div className="flex items-center gap-3 mt-4">
+                      <input
+                        type="checkbox"
+                        id="agreeToPolicy"
+                        checked={agreeToPolicy}
+                        onChange={(e) => setAgreeToPolicy(e.target.checked)}
+                        className="w-5 h-5 text-blue-600 rounded-lg focus:ring-blue-500 focus:ring-2 border-gray-300"
+                      />
+                      <label htmlFor="agreeToPolicy" className="text-sm text-gray-600">
+                        I agree to the{" "}
+                        <Link to="/privacy" target="_blank" className="text-blue-600 hover:underline font-medium">
+                          Privacy Policy
+                        </Link>{" "}
+                        and{" "}
+                        <Link to="/terms" target="_blank" className="text-blue-600 hover:underline font-medium">
+                          Terms of Service
+                        </Link>
+                      </label>
+                    </div>
+
                     <div className="flex gap-4 mt-8">
                       <button type="button" onClick={() => setStep(1)}
                         className="flex-1 py-3.5 bg-white border-2 border-blue-100 rounded-2xl text-sm font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-200 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
                         <ChevronLeft size={18} /> Back
                       </button>
-                      <button type="submit" disabled={loading}
+                      <button type="submit" disabled={loading || !agreeToPolicy}
                         className="flex-[2] bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3.5 rounded-2xl text-sm font-bold shadow-[0_10px_20px_-10px_rgba(59,130,246,0.6)] hover:shadow-[0_15px_30px_-10px_rgba(59,130,246,0.8)] disabled:opacity-70 transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-1 relative overflow-hidden group/btn">
                         <div className="absolute inset-0 -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-10" />
                         {loading ? (
@@ -578,30 +603,30 @@ const Register = () => {
                       </div>
 
                       <div className="group/input">
-  <label className="block text-sm font-semibold text-blue-900/80 mb-2">
-    <Phone size={14} className="inline mr-1.5 text-blue-500" />Company Phone *
-  </label>
-  <div className="relative">
-    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-900/60 text-sm font-bold border-r border-blue-200 pr-3">
-      +977
-    </span>
-    <input
-      type="tel"
-      {...register("companyPhone", {
-        required: "Required",
-        pattern: { 
-          value: /^(97|98)\d{8}$/, 
-          message: "Must start with 97 or 98 and be exactly 10 digits" 
-        },
-      })}
-      className="w-full pl-16 pr-5 py-3.5 bg-white/60 backdrop-blur-sm border border-blue-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
-      placeholder="98XXXXXXXX"
-      maxLength={10}
-      onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }}
-    />
-  </div>
-  {errors.companyPhone && <p className="text-red-500 text-xs mt-1.5 font-medium animate-fadeIn">{errors.companyPhone.message}</p>}
-</div>
+                        <label className="block text-sm font-semibold text-blue-900/80 mb-2">
+                          <Phone size={14} className="inline mr-1.5 text-blue-500" />Company Phone *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-900/60 text-sm font-bold border-r border-blue-200 pr-3">
+                            +977
+                          </span>
+                          <input
+                            type="tel"
+                            {...register("companyPhone", {
+                              required: "Required",
+                              pattern: { 
+                                value: /^(97|98)\d{8}$/, 
+                                message: "Must start with 97 or 98 and be exactly 10 digits" 
+                              },
+                            })}
+                            className="w-full pl-16 pr-5 py-3.5 bg-white/60 backdrop-blur-sm border border-blue-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
+                            placeholder="98XXXXXXXX"
+                            maxLength={10}
+                            onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }}
+                          />
+                        </div>
+                        {errors.companyPhone && <p className="text-red-500 text-xs mt-1.5 font-medium animate-fadeIn">{errors.companyPhone.message}</p>}
+                      </div>
 
                       <div className="col-span-2 group/input">
                         <label className="block text-sm font-semibold text-blue-900/80 mb-2">
@@ -644,7 +669,7 @@ const Register = () => {
                   </div>
                 )}
 
-                {/* ── STEP 3 EMPLOYER: Verification ── */}
+                {/* ── STEP 3 EMPLOYER: Verification with Privacy Policy ── */}
                 {step === 3 && selectedRole === "EMPLOYER" && (
                   <div className="space-y-6">
                     <div className="bg-blue-50/80 backdrop-blur-md border border-blue-200 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
@@ -718,12 +743,33 @@ const Register = () => {
                       )}
                     </div>
 
+                    {/* Privacy Policy Checkbox */}
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="agreeToPolicy"
+                        checked={agreeToPolicy}
+                        onChange={(e) => setAgreeToPolicy(e.target.checked)}
+                        className="w-5 h-5 text-blue-600 rounded-lg focus:ring-blue-500 focus:ring-2 border-gray-300"
+                      />
+                      <label htmlFor="agreeToPolicy" className="text-sm text-gray-600">
+                        I agree to the{" "}
+                        <Link to="/privacy" target="_blank" className="text-blue-600 hover:underline font-medium">
+                          Privacy Policy
+                        </Link>{" "}
+                        and{" "}
+                        <Link to="/terms" target="_blank" className="text-blue-600 hover:underline font-medium">
+                          Terms of Service
+                        </Link>
+                      </label>
+                    </div>
+
                     <div className="flex gap-4 mt-8">
                       <button type="button" onClick={() => setStep(2)}
                         className="flex-1 py-3.5 bg-white border-2 border-blue-100 rounded-2xl text-sm font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-200 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
                         <ChevronLeft size={18} /> Back
                       </button>
-                      <button type="submit" disabled={loading || uploadingDoc}
+                      <button type="submit" disabled={loading || uploadingDoc || !agreeToPolicy}
                         className="flex-[2] bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3.5 rounded-2xl text-sm font-bold shadow-[0_10px_20px_-10px_rgba(59,130,246,0.6)] hover:shadow-[0_15px_30px_-10px_rgba(59,130,246,0.8)] disabled:opacity-70 transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-1 relative overflow-hidden group/btn">
                         <div className="absolute inset-0 -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-10" />
                         {loading ? (
