@@ -262,7 +262,8 @@ export const getPublicProfile = async (req, res) => {
         workExperience: true, companyName: true,
         companyWebsite: true, companySize: true,
         industry: true, companyDescription: true,
-        profilePicture: true, 
+        profilePicture: true,
+        coverPicture: true, 
       },
     });
     if (!user) return res.status(404).json({ message: "User not found" });

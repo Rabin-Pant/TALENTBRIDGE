@@ -147,15 +147,16 @@ export const applyToJob = async (req, res) => {
     });
 
     // Create notification in database
-    const notification = await prisma.notification.create({
-      data: {
-        recipientId: job.employerId,
-        title: "New Application Received!",
-        message: `${seeker.fullName} applied for ${job.title}`,
-        type: "APPLICATION",
-        link: `/employer/applications/${application.id}`,
-      },
-    });
+    // Create notification in database
+const notification = await prisma.notification.create({
+  data: {
+    recipientId: job.employerId,
+    title: "New Application Received!",
+    message: `${seeker.fullName} applied for ${job.title}`,
+    type: "APPLICATION",
+    link: `/employer/applicants/${application.id}`, 
+  },
+});
 
     console.log("Notification created:", notification.id);
 

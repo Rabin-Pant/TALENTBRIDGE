@@ -36,6 +36,7 @@ export const getFeed = async (req, res) => {
             companyName: true,
             role: true,
             experienceLevel: true,
+            profilePicture: true,
           },
         },
         likes: { select: { userId: true } },

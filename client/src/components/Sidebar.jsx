@@ -11,21 +11,17 @@ import {
 
 const seekerLinks = [
   { to: "/home",                 icon: Home,          label: "Home"          },
-  { to: "/network",              icon: Network,       label: "My Network"    },
   { to: "/seeker/jobs",          icon: Briefcase,     label: "Browse Jobs"   },
   { to: "/seeker/applications",  icon: FileText,      label: "Applications"  },
-  { to: "/messages",             icon: MessageCircle, label: "Messages",  badge: true },
   { to: "/seeker/notifications", icon: Bell,          label: "Notifications" },
   { to: "/seeker/profile",       icon: User,          label: "Profile"       },
 ];
 
 const employerLinks = [
   { to: "/home",                  icon: Home,          label: "Home"           },
-  { to: "/network",               icon: Network,       label: "My Network"     },
   { to: "/employer/jobs",         icon: Briefcase,     label: "My Jobs"        },
   { to: "/employer/jobs/post",    icon: PlusCircle,    label: "Post a Job"     },
   { to: "/employer/applicants",   icon: Users,         label: "Applicants"     },
-  { to: "/messages",              icon: MessageCircle, label: "Messages", badge: true },
   { to: "/employer/notifications",icon: Bell,          label: "Notifications"  },
   { to: "/employer/profile",      icon: User,          label: "Company Profile"},
 ];

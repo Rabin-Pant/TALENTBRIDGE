@@ -4,7 +4,8 @@ import {
   MapPin, Mail, Phone, Briefcase, GraduationCap,
   Building2, Calendar, ArrowLeft, MessageCircle,
   UserPlus, UserCheck, UserX, Clock, Award,
-  Code, FileText, ExternalLink, Sparkles, X
+  Code, FileText, ExternalLink, Sparkles, X,
+  Heart
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -14,23 +15,23 @@ import { useAuth } from "../../context/AuthContext";
 const Avatar = ({ name, role, size = "lg", profilePicture }) => {
   const sizes = { sm: "w-10 h-10 text-sm", md: "w-14 h-14 text-xl", lg: "w-20 h-20 text-3xl" };
   const colors = {
-    SEEKER:   "from-blue-500 to-purple-600",
-    EMPLOYER: "from-green-500 to-teal-600",
-    ADMIN:    "from-red-500 to-orange-500",
+    SEEKER:   "from-blue-500 to-indigo-600",
+    EMPLOYER: "from-emerald-500 to-teal-600",
+    ADMIN:    "from-gray-700 to-gray-800",
   };
   
   const profilePictureUrl = profilePicture ? `http://localhost:5000/uploads/${profilePicture}` : null;
   
   if (profilePictureUrl) {
     return (
-      <div className={`${sizes[size]} rounded-full overflow-hidden flex-shrink-0 border-4 border-white shadow-lg cursor-pointer hover:scale-105 transition-transform duration-300`}>
+      <div className={`${sizes[size]} rounded-full overflow-hidden flex-shrink-0 border-4 border-white shadow-md cursor-pointer hover:scale-105 transition-transform duration-300`}>
         <img src={profilePictureUrl} alt={name} className="w-full h-full object-cover" />
       </div>
     );
   }
   
   return (
-    <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0 border-4 border-white shadow-lg transition-transform duration-300 hover:scale-105`}>
+    <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0 border-4 border-white shadow-md transition-transform duration-300 hover:scale-105`}>
       <span className="text-white font-bold">{name?.charAt(0)?.toUpperCase()}</span>
     </div>
   );
@@ -51,7 +52,6 @@ const PublicProfile = () => {
   const [messaging, setMessaging] = useState(false);
   const [toast, setToast] = useState(null);
   
-  // Modal states
   const [showProfilePicModal, setShowProfilePicModal] = useState(false);
   const [showCoverModal, setShowCoverModal] = useState(false);
 
@@ -75,8 +75,6 @@ const PublicProfile = () => {
             : Promise.resolve({ data: { status: "SELF" } }),
         ]);
 
-        console.log("Profile data:", profileRes.data);
-        
         setProfile(profileRes.data.user);
         setPosts(postsRes.data.posts || []);
         if (!isOwnProfile) setConnStatus(statusRes.data);
@@ -140,7 +138,7 @@ const PublicProfile = () => {
 
     if (connStatus.status === "ACCEPTED") return (
       <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-600 rounded-xl text-sm font-medium border border-green-200">
+        <span className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">
           <UserCheck size={15} /> Connected
         </span>
         <button
@@ -180,7 +178,7 @@ const PublicProfile = () => {
             await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "DECLINE" });
             setConnStatus({ status: "NONE" });
           }}
-          className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
         >
           <UserX size={15} /> Decline
         </button>
@@ -283,8 +281,6 @@ const PublicProfile = () => {
 
       <main className="md:ml-64 pt-16 p-6">
         <div className={`max-w-3xl mx-auto transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-
-          {/* Back */}
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 group"
@@ -296,9 +292,9 @@ const PublicProfile = () => {
           {/* Hero Card */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
             
-            {/* Cover Photo */}
+            {/* Cover Photo - balanced height */}
             <div 
-              className="relative h-40 bg-gray-200 overflow-hidden cursor-pointer group/cover"
+              className="relative h-32 bg-gray-100 overflow-hidden cursor-pointer group/cover rounded-t-2xl"
               onClick={() => coverPictureUrl && setShowCoverModal(true)}
             >
               {coverPictureUrl ? (
@@ -308,24 +304,20 @@ const PublicProfile = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className={`w-full h-full bg-gradient-to-r ${
-                  profile?.role === "EMPLOYER"
-                    ? "from-green-400 via-teal-500 to-blue-500"
-                    : "from-blue-400 via-purple-500 to-pink-500"
-                }`} />
+                <div className="w-full h-full bg-gradient-to-r from-gray-200 to-gray-300" />
               )}
               {coverPictureUrl && (
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">Click to view full size</span>
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">Click to view</span>
                 </div>
               )}
             </div>
 
-            {/* Profile Picture - Overlapping the cover */}
+            {/* Profile Picture - overlapping cover */}
             <div className="px-6 pb-6">
-              <div className="flex items-end justify-between -mt-12 mb-4 flex-wrap gap-3">
+              <div className="flex items-end justify-between -mt-10 mb-4 flex-wrap gap-3">
                 <div 
-                  className="cursor-pointer"
+                  className="cursor-pointer relative z-10"
                   onClick={() => profilePictureUrl && setShowProfilePicModal(true)}
                 >
                   <Avatar 
@@ -337,19 +329,10 @@ const PublicProfile = () => {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <ConnectButton />
-                  {!isOwnProfile && connStatus.status === "ACCEPTED" && (
-                    <button
-                      onClick={handleMessage}
-                      disabled={messaging}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-                    >
-                      <MessageCircle size={15} /> Message
-                    </button>
-                  )}
                   {isOwnProfile && (
                     <Link
                       to={profile?.role === "SEEKER" ? "/seeker/profile" : "/employer/profile"}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                      className="px-4 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
                     >
                       Edit Profile
                     </Link>
@@ -359,7 +342,7 @@ const PublicProfile = () => {
 
               <h1 className="text-xl font-bold text-gray-900">{profile?.fullName || "User"}</h1>
               {(profile?.currentTitle || profile?.companyName) && (
-                <p className={`font-medium mt-0.5 ${profile?.role === "EMPLOYER" ? "text-green-600" : "text-blue-600"}`}>
+                <p className="font-medium mt-0.5 text-gray-600">
                   {profile?.currentTitle || profile?.companyName}
                 </p>
               )}
@@ -385,15 +368,15 @@ const PublicProfile = () => {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 mb-5">
+          <div className="flex gap-1 bg-white rounded-xl border border-gray-100 shadow-sm p-1.5 mb-5">
             {TABS.map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   activeTab === id
                     ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
                 {label}
@@ -401,60 +384,49 @@ const PublicProfile = () => {
             ))}
           </div>
 
-          {/* ── About Tab ── */}
+          {/* About Tab */}
           {activeTab === "about" && (
             <div className="space-y-5">
-
-              {/* Bio */}
               {profile?.bio && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                   <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Sparkles size={16} className="text-amber-500" /> About
+                    <Sparkles size={16} className="text-blue-500" /> About
                   </h2>
                   <p className="text-sm text-gray-600 leading-relaxed">{profile.bio}</p>
                 </div>
               )}
 
-              {/* Seeker Info */}
               {profile?.role === "SEEKER" && (
                 <>
-                  {/* Skills */}
                   {profile?.skills?.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                       <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <Code size={16} className="text-blue-500" /> Skills
                       </h2>
                       <div className="flex flex-wrap gap-2">
                         {profile.skills.map((s) => (
-                          <span key={s} className="px-3 py-1.5 bg-blue-50 text-blue-600 text-sm rounded-full font-medium border border-blue-100">
-                            {s}
-                          </span>
+                          <span key={s} className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-full font-medium">{s}</span>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Work Experience */}
                   {workExperience.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                       <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <Briefcase size={16} className="text-blue-500" /> Experience
                       </h2>
                       <div className="space-y-5">
                         {workExperience.map((exp, i) => (
-                          <div key={i} className={`flex items-start gap-4 ${i > 0 ? "pt-5 border-t border-gray-100" : ""}`}>
-                            <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                              <Building2 size={18} className="text-blue-600" />
+                          <div key={i} className="flex items-start gap-4">
+                            <div className="w-11 h-11 bg-gray-100 rounded-xl flex items-center justify-center">
+                              <Building2 size={18} className="text-gray-600" />
                             </div>
                             <div>
                               <h3 className="font-semibold text-gray-900">{exp.title}</h3>
-                              <p className="text-blue-600 text-sm font-medium">{exp.company}</p>
+                              <p className="text-gray-600 text-sm font-medium">{exp.company}</p>
                               <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-500">
-                                {exp.location && (
-                                  <span className="flex items-center gap-1">
-                                    <MapPin size={11} />{exp.location}
-                                  </span>
-                                )}
+                                {exp.location && <span className="flex items-center gap-1"><MapPin size={11} />{exp.location}</span>}
                                 {(exp.startDate || exp.endDate) && (
                                   <span className="flex items-center gap-1">
                                     <Calendar size={11} />
@@ -462,9 +434,7 @@ const PublicProfile = () => {
                                   </span>
                                 )}
                               </div>
-                              {exp.description && (
-                                <p className="text-gray-600 text-sm mt-2 leading-relaxed">{exp.description}</p>
-                              )}
+                              {exp.description && <p className="text-gray-600 text-sm mt-2">{exp.description}</p>}
                             </div>
                           </div>
                         ))}
@@ -472,21 +442,20 @@ const PublicProfile = () => {
                     </div>
                   )}
 
-                  {/* Education */}
                   {education.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                       <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <GraduationCap size={16} className="text-purple-500" /> Education
+                        <GraduationCap size={16} className="text-blue-500" /> Education
                       </h2>
                       <div className="space-y-5">
                         {education.map((edu, i) => (
-                          <div key={i} className={`flex items-start gap-4 ${i > 0 ? "pt-5 border-t border-gray-100" : ""}`}>
-                            <div className="w-11 h-11 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                              <GraduationCap size={18} className="text-purple-600" />
+                          <div key={i} className="flex items-start gap-4">
+                            <div className="w-11 h-11 bg-gray-100 rounded-xl flex items-center justify-center">
+                              <GraduationCap size={18} className="text-gray-600" />
                             </div>
                             <div>
                               <h3 className="font-semibold text-gray-900">{edu.school}</h3>
-                              <p className="text-purple-600 text-sm font-medium">
+                              <p className="text-gray-600 text-sm font-medium">
                                 {edu.degree}{edu.field ? ` — ${edu.field}` : ""}
                               </p>
                               {(edu.startYear || edu.endYear) && (
@@ -502,20 +471,19 @@ const PublicProfile = () => {
                     </div>
                   )}
 
-                  {/* Resume */}
                   {profile?.resumeFileName && connStatus.status === "ACCEPTED" && (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                       <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <FileText size={16} className="text-green-500" /> Resume
+                        <FileText size={16} className="text-blue-500" /> Resume
                       </h2>
                       <a href={`http://localhost:5000/uploads/${profile.resumeFileName}`} target="_blank" rel="noreferrer" className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-colors group">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <FileText size={18} className="text-blue-600" />
+                          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                            <FileText size={18} className="text-gray-600" />
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-800">View Resume</p>
-                            <p className="text-xs text-gray-400">PDF Document</p>
+                            <p className="text-xs text-gray-400 mt-0.5">PDF Document</p>
                           </div>
                         </div>
                         <ExternalLink size={16} className="text-gray-400 group-hover:text-blue-600" />
@@ -525,11 +493,10 @@ const PublicProfile = () => {
                 </>
               )}
 
-              {/* Employer Info */}
               {profile?.role === "EMPLOYER" && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                   <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Building2 size={16} className="text-green-500" /> Company Info
+                    <Building2 size={16} className="text-blue-500" /> Company Info
                   </h2>
                   <div className="space-y-3 text-sm">
                     {profile.companyName && (
@@ -563,17 +530,17 @@ const PublicProfile = () => {
             </div>
           )}
 
-          {/* ── Posts Tab ── */}
+          {/* Posts Tab */}
           {activeTab === "posts" && (
             <div className="space-y-4">
               {posts.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
                   <Sparkles size={36} className="text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500">No posts yet</p>
                 </div>
               ) : (
                 posts.map((post) => (
-                  <div key={post.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div key={post.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
                     <div className="flex items-center gap-2 mb-3">
                       <Avatar 
                         name={profile?.fullName} 
@@ -595,8 +562,14 @@ const PublicProfile = () => {
                       />
                     )}
                     <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
-                      <span>{post._count?.likes || 0} likes</span>
-                      <span>{post._count?.comments || 0} comments</span>
+                      <span className="flex items-center gap-1">
+                        <Heart size={12} className="text-gray-400" />
+                        {post._count?.likes || 0} likes
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageCircle size={12} className="text-gray-400" />
+                        {post._count?.comments || 0} comments
+                      </span>
                     </div>
                   </div>
                 ))
