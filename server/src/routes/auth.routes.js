@@ -2,13 +2,14 @@ import express from "express";
 import path from "path";
 import multer from "multer";
 import rateLimit from "express-rate-limit";
-import { 
-  register, 
-  login, 
-  getMe, 
+import {
+  register,
+  login,
+  getMe,
   changePassword,
   checkEmail,
-  resetPasswordDirect
+  resetPasswordDirect,
+  submitContact,
 } from "../controllers/auth.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { fileURLToPath } from "url";
@@ -108,11 +109,14 @@ const upload = multer({
   },
 });
 
-// ─── ROUTES ───
+// ─── PUBLIC ROUTES (No authentication required) ───
 router.post("/register", registerLimiter, register);
 router.post("/login", loginLimiter, handleLoginAttempt, login);
 router.post("/check-email", checkEmail);
 router.post("/reset-password-direct", resetPasswordDirect);
+router.post("/contact", submitContact); 
+
+// ─── PROTECTED ROUTES (Authentication required) ───
 router.put("/change-password", authMiddleware, changePassword);
 router.get("/me", authMiddleware, getMe);
 router.post("/upload-company-doc", upload.single("companyDocument"), (req, res) => {

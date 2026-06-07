@@ -344,3 +344,27 @@ export const resetPasswordDirect = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const submitContact = async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+
+    console.log("Contact form received:", { name, email, subject, message });
+
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const emailRegex = /^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address" });
+    }
+
+    res.status(200).json({ 
+      message: "Thank you for contacting us! We'll get back to you soon." 
+    });
+  } catch (err) {
+    console.error("Contact form error:", err);
+    res.status(500).json({ message: "Failed to send message. Please try again." });
+  }
+};

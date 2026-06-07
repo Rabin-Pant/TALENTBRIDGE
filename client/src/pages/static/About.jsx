@@ -74,39 +74,55 @@ const About = () => {
   return (
     <div className="min-h-screen bg-slate-50 perspective-wrapper font-sans text-slate-800 overflow-hidden">
       
-      {/* 3D Animated Background - Soft Professional Orbs */}
+      {/* 3D Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 right-20 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-pulse-3d"></div>
-        <div className="absolute top-60 -left-20 w-80 h-80 bg-slate-200 rounded-full mix-blend-multiply filter blur-[80px] opacity-60 animate-pulse-3d-delayed"></div>
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-pulse-3d"></div>
+        <div className="absolute top-40 -left-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 animate-pulse-3d-delayed"></div>
       </div>
 
-      {/* Navbar (Matched Theme) */}
-      <nav className="relative z-20 bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm sticky top-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center gap-2 group cursor-pointer">
-              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center transform group-hover:rotate-12 transition-transform duration-300 shadow-sm">
-                <Briefcase size={20} className="text-white" />
-              </div>
-              <span className="font-extrabold text-2xl text-slate-900 group-hover:text-indigo-700 transition-colors">
-                TalentBridge
-              </span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link to="/login" className="px-5 py-2 text-slate-600 hover:text-indigo-600 font-medium transition-colors">
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                className="relative overflow-hidden px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5 group"
-              >
-                <span className="relative z-10">Get Started</span>
-                <div className="absolute inset-0 h-full w-full bg-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
-            </div>
-          </div>
+
+<nav className="relative z-20 bg-white/70 backdrop-blur-xl border-b border-white/50 shadow-sm sticky top-0">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex justify-between items-center h-16">
+      {/* Logo */}
+      <div className="flex items-center gap-2 group cursor-pointer">
+        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center transform group-hover:rotate-12 transition-transform duration-300 shadow-lg">
+          <Briefcase size={20} className="text-white" />
         </div>
-      </nav>
+        <span className="font-extrabold text-2xl bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
+          TalentBridge
+        </span>
+      </div>
+      
+      {/* Center Navigation Links with spacing */}
+      <div className="hidden md:flex items-center gap-8">
+        <Link to="/" className="text-gray-600 hover:text-blue-600 transition-colors font-medium px-2">
+          Home
+        </Link>
+        <Link to="/about" className="text-gray-600 hover:text-blue-600 transition-colors font-medium px-2">
+          About
+        </Link>
+        <Link to="/contact" className="text-gray-600 hover:text-blue-600 transition-colors font-medium px-2">
+          Contact
+        </Link>
+      </div>
+      
+      {/* Right Side Buttons */}
+      <div className="flex items-center gap-4">
+        <Link to="/login" className="px-5 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors">
+          Sign In
+        </Link>
+        <Link
+          to="/register"
+          className="relative overflow-hidden px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium shadow-[0_10px_20px_rgba(37,99,235,0.2)] hover:shadow-[0_15px_30px_rgba(37,99,235,0.4)] transition-all duration-300 transform hover:-translate-y-1 group"
+        >
+          <span className="relative z-10">Get Started</span>
+          <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </Link>
+      </div>
+    </div>
+  </div>
+</nav>
 
       <div className={`relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 transition-all duration-1000 transform-style-3d ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}>
         

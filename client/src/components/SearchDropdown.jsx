@@ -12,14 +12,103 @@ const SearchDropdown = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const isClickingInside = useRef(false);
 
-  // Close dropdown when clicking outside
+  // Helper function to render connection button (NOT a component inside component)
+  const renderConnectionButton = (targetUser) => {
+    if (targetUser.connectionStatus === "ACCEPTED") {
+      return (
+        <span className="flex items-center gap-1 px-3 py-1 bg-green-50 text-green-600 rounded-lg text-xs font-medium whitespace-nowrap">
+          <UserCheck size={12} /> Connected
+        </span>
+      );
+    }
+
+    if (targetUser.connectionStatus === "PENDING") {
+      if (targetUser.isSender) {
+        return (
+          <span className="flex items-center gap-1 px-3 py-1 bg-yellow-50 text-yellow-600 rounded-lg text-xs font-medium whitespace-nowrap">
+            <Clock size={12} /> Pending
+          </span>
+        );
+      } else {
+        return (
+          <div className="flex gap-1">
+            <button
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isClickingInside.current = true;
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAccept(targetUser.connectionId, targetUser.id);
+                isClickingInside.current = false;
+              }}
+              className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 whitespace-nowrap"
+            >
+              Accept
+            </button>
+            <button
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isClickingInside.current = true;
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDecline(targetUser.connectionId, targetUser.id);
+                isClickingInside.current = false;
+              }}
+              className="px-3 py-1 border border-gray-300 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 whitespace-nowrap"
+            >
+              Decline
+            </button>
+          </div>
+        );
+      }
+    }
+
+    return (
+      <button
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          isClickingInside.current = true;
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleConnect(targetUser.id);
+          isClickingInside.current = false;
+        }}
+        disabled={connecting[targetUser.id]}
+        className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
+      >
+        <UserPlus size={12} />
+        {connecting[targetUser.id] ? "Sending..." : "Connect"}
+      </button>
+    );
+  };
+
+  // Close dropdown when clicking outside - BULLETPROOFED
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // If we're in the middle of a click inside, don't close
+      if (isClickingInside.current) {
+        isClickingInside.current = false;
+        return;
+      }
+
+      // Check if dropdown exists and click is outside
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         onClose();
       }
     };
+    
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
@@ -97,62 +186,15 @@ const SearchDropdown = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleUserClick = (userId) => {
+  const handleViewProfile = (userId) => {
+    isClickingInside.current = true;
     onClose();
     setTimeout(() => {
       navigate(`/profile/${userId}`);
+      isClickingInside.current = false;
     }, 50);
   };
 
-  const ConnectionButton = ({ targetUser }) => {
-    if (targetUser.connectionStatus === "ACCEPTED") {
-      return (
-        <span className="flex items-center gap-1 px-3 py-1 bg-green-50 text-green-600 rounded-lg text-xs font-medium">
-          <UserCheck size={12} /> Connected
-        </span>
-      );
-    }
-
-    if (targetUser.connectionStatus === "PENDING") {
-      if (targetUser.isSender) {
-        return (
-          <span className="flex items-center gap-1 px-3 py-1 bg-yellow-50 text-yellow-600 rounded-lg text-xs font-medium">
-            <Clock size={12} /> Pending
-          </span>
-        );
-      } else {
-        return (
-          <div className="flex gap-1">
-            <button
-              onClick={() => handleAccept(targetUser.connectionId, targetUser.id)}
-              className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
-            >
-              Accept
-            </button>
-            <button
-              onClick={() => handleDecline(targetUser.connectionId, targetUser.id)}
-              className="px-3 py-1 border border-gray-300 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50"
-            >
-              Decline
-            </button>
-          </div>
-        );
-      }
-    }
-
-    return (
-      <button
-        onClick={() => handleConnect(targetUser.id)}
-        disabled={connecting[targetUser.id]}
-        className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50"
-      >
-        <UserPlus size={12} />
-        {connecting[targetUser.id] ? "Sending..." : "Connect"}
-      </button>
-    );
-  };
-
-  // Helper to get profile picture URL
   const getProfilePictureUrl = (profilePicture) => {
     return profilePicture ? `http://localhost:5000/uploads/${profilePicture}` : null;
   };
@@ -168,6 +210,7 @@ const SearchDropdown = ({ isOpen, onClose }) => {
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Search for people by name, email, or company..."
             value={searchTerm}
@@ -207,11 +250,18 @@ const SearchDropdown = ({ isOpen, onClose }) => {
             return (
               <div
                 key={result.id}
-                onClick={() => handleUserClick(result.id)}
-                className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer group"
+                className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors"
               >
-                {/* Avatar with profile picture */}
-                <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600">
+                {/* Avatar - Clickable to view profile */}
+                <div 
+                  className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600 cursor-pointer"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isClickingInside.current = true;
+                  }}
+                  onClick={() => handleViewProfile(result.id)}
+                >
                   {profilePicUrl ? (
                     <img 
                       src={profilePicUrl} 
@@ -226,8 +276,18 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 text-sm truncate group-hover:text-blue-600 transition-colors">
+                
+                {/* User Info - Clickable to view profile */}
+                <div 
+                  className="flex-1 min-w-0 cursor-pointer"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isClickingInside.current = true;
+                  }}
+                  onClick={() => handleViewProfile(result.id)}
+                >
+                  <p className="font-medium text-gray-900 text-sm truncate hover:text-blue-600 transition-colors">
                     {result.fullName}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
@@ -237,9 +297,9 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                     <p className="text-xs text-gray-400 truncate">{result.location}</p>
                   )}
                 </div>
-                <div onClick={(e) => e.stopPropagation()}>
-                  <ConnectionButton targetUser={result} />
-                </div>
+                
+                {/* Connection Button - Using helper function */}
+                {renderConnectionButton(result)}
               </div>
             );
           })
