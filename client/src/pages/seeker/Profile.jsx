@@ -4,7 +4,7 @@ import {
   User, MapPin, Briefcase, FileText, Save,
   Upload, CheckCircle, Sparkles, X, Plus,
   GraduationCap, Building2, Lock, Mail, Phone,
-  Camera, Trash2
+  Camera, Trash2, Hash
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -494,12 +494,42 @@ const handleCoverPictureUpload = async (e) => {
 
           <form onSubmit={handleSubmit(onSubmit)}>
 
-            {/* ── BASIC INFO TAB ── */}
-            {activeTab === "basic" && (
+           {activeTab === "basic" && (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
                 <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                   <User size={18} className="text-blue-500" /> Basic Information
                 </h2>
+
+                {/* ── ADDED: Read-Only Unique Platform Identifier Block ── */}
+                <div className="p-4 bg-gray-50 border border-gray-200/60 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                      <Hash size={16} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unique Account Identifier (UID)</p>
+                      <p className="font-mono text-xs text-gray-600 font-medium mt-0.5 break-all">
+                        {user?.id || "Loading identity..."}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (user?.id) {
+                        navigator.clipboard.writeText(user.id);
+                        if (typeof showToast === "function") {
+                          showToast("Account UID copied successfully!");
+                        } else {
+                          alert("Account UID copied successfully!");
+                        }
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-white border border-gray-200 hover:border-blue-300 text-gray-600 text-xs font-medium rounded-lg shadow-sm transition-all shrink-0 self-start sm:self-center"
+                  >
+                    Copy ID
+                  </button>
+                </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name *</label>

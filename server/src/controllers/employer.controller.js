@@ -216,19 +216,23 @@ export const updateApplicationStatus = async (req, res) => {
 // ─── GET PROFILE ─────────────────────────────────────
 export const getProfile = async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
+   const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
         id: true,
         email: true,
         fullName: true,
+        role: true,
         companyName: true,
         companyWebsite: true,
         companySize: true,
         industry: true,
         companyDescription: true,
+        companyPhone: true,
         profilePicture: true,
         coverPicture: true,
+        companyAddress: true,
+        companyRegNumber: true,
       },
     });
 

@@ -4,6 +4,7 @@ import {
   Inbox, AlertCircle, Eye, RefreshCw, ChevronRight
 } from "lucide-react";
 import api from "../../api/axios";
+import Sidebar from "../../components/Sidebar"; // 👈 Added the missing import
 
 const AdminContacts = () => {
   const [messages, setMessages] = useState([]);
@@ -33,9 +34,7 @@ const AdminContacts = () => {
   const handleMarkAsRead = async (id) => {
     try {
       await api.put(`/admin/contacts/${id}/read`);
-      // Update local state list
       setMessages(messages.map(msg => msg.id === id ? { ...msg, read: true } : msg));
-      // Update currently open message viewer state
       if (selectedMessage?.id === id) {
         setSelectedMessage({ ...selectedMessage, read: true });
       }
@@ -55,12 +54,10 @@ const AdminContacts = () => {
     }
   };
 
-  // Stats Calculations
   const totalCount = messages.length;
   const unreadCount = messages.filter(m => !m.read).length;
   const readCount = totalCount - unreadCount;
 
-  // Filter Logic
   const filteredMessages = messages.filter(msg => {
     if (filter === "unread") return !msg.read;
     if (filter === "read") return msg.read;
@@ -69,6 +66,9 @@ const AdminContacts = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50 md:pl-64 pt-20 pb-10 transition-all duration-300">
+      {/* 👈 Render the Sidebar here */}
+      <Sidebar />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* ─── Header Section ─── */}
@@ -168,7 +168,7 @@ const AdminContacts = () => {
                   return (
                     <div
                       key={msg.id}
-                      onClick={() => setSelectedMessage(msg)} // Removed the automatic read execution here
+                      onClick={() => setSelectedMessage(msg)}
                       className={`p-4 text-left cursor-pointer transition-all flex items-start gap-3 relative ${
                         isSelected ? "bg-blue-50/60" : "hover:bg-gray-50/70"
                       } ${!msg.read ? "bg-white border-l-4 border-blue-600 pl-3" : ""}`}
@@ -254,7 +254,6 @@ const AdminContacts = () => {
                       Reply via Email
                     </a>
                     
-                    {/* Explicit Manual Mark as Read Button (Displays only if message is Unread) */}
                     {!selectedMessage.read && (
                       <button
                         onClick={() => handleMarkAsRead(selectedMessage.id)}

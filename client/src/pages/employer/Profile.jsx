@@ -4,7 +4,7 @@ import {
   User, MapPin, Briefcase, FileText, Save,
   Upload, CheckCircle, Sparkles, X, Plus,
   Building2, Lock, Mail, Phone, Globe,
-  Users, Camera, Trash2
+  Users, Camera, Trash2, Hash
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -58,8 +58,12 @@ const EmployerProfile = () => {
           companyName: u.companyName || "",
           companyWebsite: u.companyWebsite || "",
           companySize: u.companySize || "",
+          companyAddress: u.companyAddress || u.address || u.location || "",
           industry: u.industry || "",
           companyDescription: u.companyDescription || "",
+          phone: u.phone || "",
+          location: u.location || "",
+          companyRegNumber: u.companyRegNumber || "",
         });
       } catch (err) {
         console.error(err);
@@ -372,20 +376,40 @@ const EmployerProfile = () => {
             <Lock size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-amber-800">Some fields are locked</p>
-              <p className="text-xs text-amber-600 mt-0.5">Email cannot be changed after registration. Contact support if needed.</p>
+              <p className="text-xs text-amber-600 mt-0.5">Contact support if needed.</p>
             </div>
           </div>
 
-          {/* Locked Fields */}
+       {/* Locked Fields */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1">
                   <Mail size={12} /> Email Address
                   <Lock size={11} className="text-gray-300 ml-1" />
                 </label>
+                <div className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500 cursor-not-allowed truncate">
+                  {profileData?.email || "N/A"}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1">
+                  <Phone size={12} /> Contact Line Number
+                  <Lock size={11} className="text-gray-300 ml-1" />
+                </label>
                 <div className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500 cursor-not-allowed">
-                  {profileData?.email}
+                  {profileData?.companyPhone || profileData?.phone || "Not Provided"}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1">
+                  <Hash size={12} /> Registration Reference No.
+                  <Lock size={11} className="text-gray-300 ml-1" />
+                </label>
+                <div className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500 cursor-not-allowed">
+                  {profileData?.registrationNumber || profileData?.companyRegNumber || "Not Provided"}
                 </div>
               </div>
             </div>
@@ -393,11 +417,44 @@ const EmployerProfile = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Basic Information */}
+
+          {/* Basic Information */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Building2 size={18} className="text-green-500" /> Company Information
+              
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                <User size={18} className="text-green-500" /> Basic Information
               </h2>
+
+              <div className="mb-6 p-4 bg-gray-50 border border-gray-200/60 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+                    <Hash size={16} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unique Account Identifier (UID)</p>
+                    <p className="font-mono text-xs text-gray-600 font-medium mt-0.5 break-all">
+                      {user?.id || "Loading identity..."}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (user?.id) {
+                      navigator.clipboard.writeText(user.id);
+                      if (typeof showToast === "function") {
+                        showToast("Account UID copied successfully!");
+                      } else {
+                        alert("Account UID copied successfully!");
+                      }
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-white border border-gray-200 hover:border-green-300 text-gray-600 text-xs font-medium rounded-lg shadow-sm transition-all shrink-0 self-start sm:self-center"
+                >
+                  Copy ID
+                </button>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name *</label>
@@ -417,9 +474,22 @@ const EmployerProfile = () => {
                   />
                   {errors.companyName && <p className="text-red-500 text-xs mt-1">{errors.companyName.message}</p>}
                 </div>
+
+                {/* Geographic Location Mapping */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    <Globe size={13} className="inline mr-1 text-gray-400" /> Website
+                    <MapPin size={13} className="inline mr-1 text-gray-400" /> Geographic Location Mapping
+                  </label>
+                  <input
+                    {...register("companyAddress")}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="e.g. Sukedhara, KTM"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <Globe size={13} className="inline mr-1 text-gray-400" /> Corporate Domain / Website
                   </label>
                   <input
                     {...register("companyWebsite")}
@@ -427,9 +497,10 @@ const EmployerProfile = () => {
                     placeholder="https://company.com"
                   />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    <Users size={13} className="inline mr-1 text-gray-400" /> Company Size
+                    <Users size={13} className="inline mr-1 text-gray-400" /> Company Operational Size
                   </label>
                   <select
                     {...register("companySize")}

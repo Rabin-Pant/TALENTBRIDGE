@@ -16,6 +16,7 @@ import Home            from "./pages/shared/Home";
 import Network         from "./pages/shared/Network";
 import Messages        from "./pages/shared/Messages";
 import PublicProfile   from "./pages/shared/PublicProfile";
+import Contact         from "./pages/shared/Contact";
 
 // Seeker
 import SeekerJobs          from "./pages/seeker/Jobs";
@@ -36,12 +37,13 @@ import EmployerNotifications from "./pages/employer/Notifications";
 import AdminDashboard    from "./pages/admin/Dashboard";
 import AdminUsers        from "./pages/admin/Users";
 import AdminJobs         from "./pages/admin/Jobs";
+import AdminJobDetail    from "./pages/admin/JobDetail";
 import AdminApplications from "./pages/admin/Applications";
 import AdminContacts     from "./pages/admin/Contacts";
+import AdminPosts        from "./pages/admin/Posts";
 
 // Static pages
 import About         from "./pages/static/About";
-import Contact       from "./pages/static/Contact";
 import PrivacyPolicy from "./pages/static/PrivacyPolicy";
 import Terms         from "./pages/static/Terms";
 
@@ -119,8 +121,11 @@ const App = () => {
         <Route path="/admin/dashboard" element={<ProtectedRoute role="ADMIN"><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute role="ADMIN"><AdminUsers /></ProtectedRoute>} />
         <Route path="/admin/jobs" element={<ProtectedRoute role="ADMIN"><AdminJobs /></ProtectedRoute>} />
+        <Route path="/admin/jobs/:id" element={<AdminJobDetail />} />
         <Route path="/admin/applications" element={<ProtectedRoute role="ADMIN"><AdminApplications /></ProtectedRoute>} />
         <Route path="/admin/contacts" element={<ProtectedRoute role="ADMIN"><AdminContacts /></ProtectedRoute>} /> 
+        <Route path="/admin/posts" element={<ProtectedRoute role="ADMIN"><AdminPosts /></ProtectedRoute>} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

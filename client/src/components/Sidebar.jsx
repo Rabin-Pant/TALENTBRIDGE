@@ -7,7 +7,7 @@ import {
   Home, Briefcase, FileText, User, Bell,
   PlusCircle, Users, Shield, MessageCircle,
   Network, LayoutDashboard, ChevronRight,
-  Mail
+  Mail, Newspaper
 } from "lucide-react";
 
 const seekerLinks = [
@@ -28,11 +28,12 @@ const employerLinks = [
 ];
 
 const adminLinks = [
-  { to: "/admin/dashboard",  icon: LayoutDashboard, label: "Dashboard"    },
-  { to: "/admin/users",      icon: Users,           label: "Users"        },
-  { to: "/admin/jobs",       icon: Briefcase,       label: "All Jobs"     },
-  { to: "/admin/applications",icon: FileText,        label: "Applications" },
-  { to: "/admin/contacts",   icon: Mail,            label: "Messages"     },
+  { to: "/admin/dashboard",    icon: LayoutDashboard, label: "Dashboard"    },
+  { to: "/admin/users",        icon: Users,           label: "Users"        },
+  { to: "/admin/jobs",         icon: Briefcase,       label: "All Jobs"     },
+  { to: "/admin/applications", icon: FileText,        label: "Applications" },
+  { to: "/admin/posts",        icon: Newspaper,       label: "Feed Posts"   },
+  { to: "/admin/contacts",     icon: Mail,            label: "Messages"     },
 ];
 
 const Sidebar = () => {

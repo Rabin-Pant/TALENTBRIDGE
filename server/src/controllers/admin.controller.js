@@ -281,15 +281,14 @@ export const getUsers = async (req, res) => {
       },
     });
     
-    // Sanitize email addresses in response (hide part of email for privacy)
-    const sanitizedUsers = users.map(user => ({
+    const processedUsers = users.map(user => ({
       ...user,
-      email: user.email ? user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') : null,
-      phone: user.phone ? user.phone.replace(/(.{3})(.*)(.{2})/, '$1***$3') : null,
+      email: user.email || null,
+      phone: user.phone || user.companyPhone || null,
     }));
 
     res.json({ 
-      users: sanitizedUsers,
+      users: processedUsers,
       pagination: {
         currentPage: validatedPage,
         totalPages: Math.ceil(totalUsers / validatedLimit),
@@ -346,33 +345,30 @@ export const toggleUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Validate ID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
       return res.status(400).json({ message: "Invalid user ID format" });
     }
     
     const user = await prisma.user.findUnique({ where: { id } });
-
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Prevent admin from disabling themselves
     if (user.id === req.user.id) {
       return res.status(400).json({ message: "Cannot disable your own account" });
     }
 
+    // 💡 Toggles your original boolean column 'active' between true and false
     const updated = await prisma.user.update({
       where: { id },
       data: { active: !user.active },
       select: { id: true, fullName: true, active: true },
     });
 
-    // Log the action (for audit trail)
     console.log(`Admin ${req.user.id} ${updated.active ? "enabled" : "disabled"} user ${updated.id}`);
 
     res.json({
       message: `User ${updated.active ? "enabled" : "disabled"} successfully`,
-      user: updated,
+      user: updated, // Sends back { id, fullName, active }
     });
   } catch (err) {
     console.error(err);
@@ -768,5 +764,70 @@ export const deleteContact = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getAllPosts = async (req, res) => {
+  try {
+    const posts = await prisma.post.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        author: {
+          select: { 
+            id: true,          
+            fullName: true, 
+            role: true, 
+            email: true, 
+            profilePicture: true 
+          },
+        },
+        _count: { select: { likes: true, comments: true } },
+      },
+    });
+    res.json({ posts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const adminDeletePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const post = await prisma.post.findUnique({ 
+      where: { id },
+      select: {
+        id: true,
+        authorId: true, 
+        content: true
+      }
+    });
+    
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const contentSnippet = post.content.length > 30 
+      ? `"${post.content.slice(0, 30)}..."` 
+      : `"${post.content}"`;
+
+    const warningMessage = `Warning: Your post containing ${contentSnippet} was removed by administration for violating community guidelines. Repeated violations may result in account suspension.`;
+
+    await prisma.notification.create({
+      data: {
+        userId: post.authorId,
+        title: "Content Removal Warning",
+        message: warningMessage,
+        type: "SYSTEM", 
+      },
+    });
+
+    await prisma.post.delete({ where: { id } });
+
+    res.json({ message: "Post successfully moderated and warning notification dispatched." });
+  } catch (err) {
+    console.error("Error in adminDeletePost moderation flow:", err);
+    res.status(500).json({ message: "Server error during content deletion" });
   }
 };

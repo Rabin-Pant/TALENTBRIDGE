@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { Bell, LogOut, User, ChevronDown, Briefcase, Search, Home, Network, MessageCircle, Settings, Info, Mail, Shield } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, Briefcase, Search, Home, Network, MessageCircle, Info, Mail, Shield } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
@@ -287,10 +287,6 @@ const Navbar = () => {
                         >
                           <Mail size={15} className="text-gray-400" /> Contact Us
                         </Link>
-
-                        <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100">
-                          <Settings size={15} className="text-gray-400" /> Settings
-                        </button>
 
                         <button
                           onClick={logout}

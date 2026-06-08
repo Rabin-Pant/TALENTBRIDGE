@@ -16,13 +16,13 @@ const sanitizeInput = (input) => {
   if (!input) return null;
   return String(input)
     .trim()
-    .replace(/[<>'"]/g, '')
+    .replace(/[<>'\"]/g, '')
     .slice(0, 255);
 };
 
 const isValidEmail = (email) => {
  // strictly allow only gmail, yahoo, outlook, and hotmail
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook|hotmail)\.com$/;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook|hotmail)\\.com$/;
   return emailRegex.test(email);
 };
 
@@ -137,7 +137,7 @@ export const register = async (req, res) => {
         fullName: user.fullName,
         role: user.role,
         companyName: user.companyName,
-         profilePicture: user.profilePicture,
+        profilePicture: user.profilePicture,
       },
     });
   } catch (err) {
@@ -231,6 +231,10 @@ export const getMe = async (req, res) => {
         createdAt: true,
         lastLogin: true,
         profilePicture: true,  
+        // 👇 FIXED: Added these three fields so they load correctly into your Auth Context
+        companyRegNumber: true,
+        companyAddress: true,
+        companyPhone: true,
       },
     });
 
