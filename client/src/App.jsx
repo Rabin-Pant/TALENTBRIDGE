@@ -44,10 +44,18 @@ import Contact       from "./pages/static/Contact";
 import PrivacyPolicy from "./pages/static/PrivacyPolicy";
 import Terms         from "./pages/static/Terms";
 
-const RoleRedirect = () => {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/" replace />;
-  if (user.role === "ADMIN") return <Navigate to="/admin/dashboard" replace />;
+const IndexRoute = () => {
+  const { user, loading } = useAuth(); // Add 'loading' if your AuthContext supports it
+
+ 
+  if (loading) return <div className="h-screen w-full flex items-center justify-center">Loading...</div>; 
+
+  if (!user) {
+    return <Landing />;
+  }
+  if (user.role === "ADMIN") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
   return <Navigate to="/home" replace />;
 };
 
@@ -64,9 +72,9 @@ const App = () => {
       {shouldShowNavbar && <Navbar />} 
       
       <Routes>
-        {/* Public - Landing page first */}
-        <Route path="/" element={<Landing />} /> 
-        <Route path="/landing" element={<Landing />} />
+       {/* Dynamic Root Route */}
+      <Route path="/" element={<IndexRoute />} /> 
+      <Route path="/landing" element={<Navigate to="/" replace />} />
         
         {/* Public Auth Routes */}
         <Route path="/login" element={<Login />} />
