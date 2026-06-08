@@ -37,6 +37,7 @@ import AdminDashboard    from "./pages/admin/Dashboard";
 import AdminUsers        from "./pages/admin/Users";
 import AdminJobs         from "./pages/admin/Jobs";
 import AdminApplications from "./pages/admin/Applications";
+import AdminContacts     from "./pages/admin/Contacts";
 
 // Static pages
 import About         from "./pages/static/About";
@@ -45,17 +46,19 @@ import PrivacyPolicy from "./pages/static/PrivacyPolicy";
 import Terms         from "./pages/static/Terms";
 
 const IndexRoute = () => {
-  const { user, loading } = useAuth(); // Add 'loading' if your AuthContext supports it
+  const { user } = useAuth(); 
 
- 
-  if (loading) return <div className="h-screen w-full flex items-center justify-center">Loading...</div>; 
-
+  // 1. If NO user, show the Landing page directly (No redirects = no infinite loop)
   if (!user) {
     return <Landing />;
   }
+
+  // 2. If ADMIN, send to admin dashboard
   if (user.role === "ADMIN") {
     return <Navigate to="/admin/dashboard" replace />;
   }
+
+  // 3. If SEEKER or EMPLOYER, send to home feed
   return <Navigate to="/home" replace />;
 };
 
@@ -117,7 +120,7 @@ const App = () => {
         <Route path="/admin/users" element={<ProtectedRoute role="ADMIN"><AdminUsers /></ProtectedRoute>} />
         <Route path="/admin/jobs" element={<ProtectedRoute role="ADMIN"><AdminJobs /></ProtectedRoute>} />
         <Route path="/admin/applications" element={<ProtectedRoute role="ADMIN"><AdminApplications /></ProtectedRoute>} />
-
+        <Route path="/admin/contacts" element={<ProtectedRoute role="ADMIN"><AdminContacts /></ProtectedRoute>} /> 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

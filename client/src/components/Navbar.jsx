@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { Bell, LogOut, User, ChevronDown, Briefcase, Search, Home, Network, MessageCircle, Settings, Info, Mail } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, Briefcase, Search, Home, Network, MessageCircle, Settings, Info, Mail, Shield } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
@@ -38,6 +38,7 @@ const Navbar = () => {
   const searchRef   = useRef(null);
 
   const isLoggedIn = !!user;
+  const isAdmin = user?.role === "ADMIN";
 
   const notifPath = user?.role === "SEEKER"   ? "/seeker/notifications"  :
                     user?.role === "EMPLOYER" ? "/employer/notifications" : null;
@@ -45,7 +46,8 @@ const Navbar = () => {
   const profilePath = user?.role === "SEEKER"   ? "/seeker/profile"  :
                       user?.role === "EMPLOYER" ? "/employer/profile" : null;
 
-  const homePath = isLoggedIn ? "/home" : "/";
+  // If Admin, logo directs back to Admin Dashboard
+  const homePath = isLoggedIn ? (isAdmin ? "/admin/dashboard" : "/home") : "/";
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -82,7 +84,6 @@ const Navbar = () => {
       </div>
 
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/50 shadow-sm">
-        {/* REMOVED max-w-7xl mx-auto, REPLACED with w-full */}
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
 
@@ -94,12 +95,17 @@ const Navbar = () => {
               <span className="font-extrabold text-2xl bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
                 TalentBridge
               </span>
+              {isAdmin && (
+                <span className="ml-1 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
+                  Admin
+                </span>
+              )}
             </Link>
 
             {/* Center Section */}
             <div className="flex-1 flex justify-center">
-              {isLoggedIn ? (
-                // Logged In: Search Bar
+              {isLoggedIn && !isAdmin ? (
+                // Logged In & NOT Admin: Show Search Bar
                 <div className="relative w-96" ref={searchRef}>
                   <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
@@ -112,8 +118,8 @@ const Navbar = () => {
                     <SearchDropdown isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
                   )}
                 </div>
-              ) : (
-                // Logged Out: Home, About, Contact links
+              ) : !isLoggedIn ? (
+                // Logged Out: Show Home, About, Contact links
                 <div className="hidden md:flex items-center gap-12">
                   <NavLink
                     to="/"
@@ -146,7 +152,7 @@ const Navbar = () => {
                     Contact
                   </NavLink>
                 </div>
-              )}
+              ) : null /* If Admin is logged in, center stays completely clean */}
             </div>
 
             {/* Right Side */}
@@ -155,50 +161,52 @@ const Navbar = () => {
               {isLoggedIn ? (
                 // LOGGED IN NAVIGATION
                 <>
-                  {/* Main Nav Links */}
-                  <div className="hidden md:flex items-center gap-4">
-                    <NavLink
-                      to="/home"
-                      className={({ isActive }) =>
-                        `flex flex-col items-center gap-0.5 px-3 py-1 border-b-2 transition-all duration-150 ${
-                          isActive
-                            ? "text-blue-700 border-blue-700"
-                            : "text-gray-500 border-transparent hover:text-gray-900 hover:border-gray-400"
-                        }`
-                      }
-                    >
-                      <Home size={20} />
-                      <span className="text-xs">Home</span>
-                    </NavLink>
-                    <NavLink
-                      to="/network"
-                      className={({ isActive }) =>
-                        `flex flex-col items-center gap-0.5 px-3 py-1 border-b-2 transition-all duration-150 ${
-                          isActive
-                            ? "text-blue-700 border-blue-700"
-                            : "text-gray-500 border-transparent hover:text-gray-900 hover:border-gray-400"
-                        }`
-                      }
-                    >
-                      <Network size={20} />
-                      <span className="text-xs">Network</span>
-                    </NavLink>
-                    <NavLink
-                      to="/messages"
-                      className={({ isActive }) =>
-                        `flex flex-col items-center gap-0.5 px-3 py-1 border-b-2 transition-all duration-150 ${
-                          isActive
-                            ? "text-blue-700 border-blue-700"
-                            : "text-gray-500 border-transparent hover:text-gray-900 hover:border-gray-400"
-                        }`
-                      }
-                    >
-                      <MessageCircle size={20} />
-                      <span className="text-xs">Messages</span>
-                    </NavLink>
-                  </div>
+                  {/* Main Nav Links (HIDDEN IF ADMIN) */}
+                  {!isAdmin && (
+                    <div className="hidden md:flex items-center gap-4">
+                      <NavLink
+                        to="/home"
+                        className={({ isActive }) =>
+                          `flex flex-col items-center gap-0.5 px-3 py-1 border-b-2 transition-all duration-150 ${
+                            isActive
+                              ? "text-blue-700 border-blue-700"
+                              : "text-gray-500 border-transparent hover:text-gray-900 hover:border-gray-400"
+                          }`
+                        }
+                      >
+                        <Home size={20} />
+                        <span className="text-xs">Home</span>
+                      </NavLink>
+                      <NavLink
+                        to="/network"
+                        className={({ isActive }) =>
+                          `flex flex-col items-center gap-0.5 px-3 py-1 border-b-2 transition-all duration-150 ${
+                            isActive
+                              ? "text-blue-700 border-blue-700"
+                              : "text-gray-500 border-transparent hover:text-gray-900 hover:border-gray-400"
+                          }`
+                        }
+                      >
+                        <Network size={20} />
+                        <span className="text-xs">Network</span>
+                      </NavLink>
+                      <NavLink
+                        to="/messages"
+                        className={({ isActive }) =>
+                          `flex flex-col items-center gap-0.5 px-3 py-1 border-b-2 transition-all duration-150 ${
+                            isActive
+                              ? "text-blue-700 border-blue-700"
+                              : "text-gray-500 border-transparent hover:text-gray-900 hover:border-gray-400"
+                          }`
+                        }
+                      >
+                        <MessageCircle size={20} />
+                        <span className="text-xs">Messages</span>
+                      </NavLink>
+                    </div>
+                  )}
 
-                  {/* Notification Bell */}
+                  {/* Notification Bell (Automatically hidden for admin since notifPath is null) */}
                   {notifPath && (
                     <NavLink
                       to={notifPath}
@@ -242,6 +250,17 @@ const Navbar = () => {
                             <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                           </div>
                         </div>
+
+                        {/* Admin Dashboard shortcut inside Dropdown */}
+                        {isAdmin && (
+                          <Link
+                            to="/admin/dashboard"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100 font-medium"
+                          >
+                            <Shield size={15} className="text-red-500" /> Admin Dashboard
+                          </Link>
+                        )}
 
                         {profilePath && (
                           <Link
@@ -302,8 +321,8 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile search dropdown */}
-        {searchOpen && (
+        {/* Mobile search dropdown (HIDDEN IF ADMIN) */}
+        {searchOpen && !isAdmin && (
           <div className="md:hidden absolute top-16 left-0 right-0 bg-white/90 backdrop-blur-xl border-b border-gray-200 p-3 shadow-lg z-50">
             <SearchDropdown isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
           </div>

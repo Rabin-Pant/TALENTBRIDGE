@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { FileText, Search, Building2, User, Clock, Sparkles, Eye } from "lucide-react";
+import { FileText, Search, Building2, User, Clock, Sparkles } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
-import { Link } from "react-router-dom";
 
 const StatusBadge = ({ status }) => {
   const styles = {
@@ -102,7 +101,7 @@ const AdminApplications = () => {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by applicant, job title, or company..."
+                placeholder="Search by applicant name...."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
@@ -135,13 +134,12 @@ const AdminApplications = () => {
                     <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Job Position</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Applied Date</th>
-                    <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-16 text-gray-400">
+                      <td colSpan={4} className="text-center py-16 text-gray-400">
                         <FileText size={40} className="mx-auto mb-3 text-gray-300" />
                         <p className="text-sm font-medium">No applications found</p>
                         <p className="text-xs mt-1">Try adjusting your search or filter</p>
@@ -186,16 +184,6 @@ const AdminApplications = () => {
                               month: 'short', 
                               day: 'numeric' 
                             })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end">
-                            <Link
-                              to={`/employer/applications/${app.id}`}
-                              className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-all duration-200 flex items-center gap-1"
-                            >
-                              <Eye size={13} /> View Details
-                            </Link>
                           </div>
                         </td>
                       </tr>

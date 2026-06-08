@@ -4,7 +4,7 @@ import roleMiddleware from "../middleware/role.middleware.js";
 import {
   getDashboard, getUsers, toggleUserStatus,
   deleteUser, getAllJobs, deleteJob,
-  getAllApplications, sendNotification, approveEmployer, getJobById, getLandingStats,
+  getAllApplications, sendNotification, approveEmployer, getJobById, getLandingStats, getContactMessages, markContactRead, deleteContact,
 } from "../controllers/admin.controller.js";
 
 // Import security middleware
@@ -52,5 +52,10 @@ router.get("/applications", validateSearchQuery, getAllApplications);
 
 // Notifications
 router.post("/notify", strictRateLimiter, sanitizeBody, validateNotification, sendNotification);
+
+// Contact Message
+router.get("/contacts",            getContactMessages);
+router.put("/contacts/:id/read",   markContactRead);
+router.delete("/contacts/:id",     deleteContact);
 
 export default router;

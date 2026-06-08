@@ -349,8 +349,6 @@ export const submitContact = async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
 
-    console.log("Contact form received:", { name, email, subject, message });
-
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -360,9 +358,38 @@ export const submitContact = async (req, res) => {
       return res.status(400).json({ message: "Please enter a valid email address" });
     }
 
-    res.status(200).json({ 
-      message: "Thank you for contacting us! We'll get back to you soon." 
+    // Save to database
+    const contact = await prisma.contactMessage.create({
+      data: { name, email, subject, message },
     });
+
+    // Send real-time notification to all admins
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN", active: true },
+      select: { id: true },
+    });
+
+    for (const admin of admins) {
+      // Save notification
+      await prisma.notification.create({
+        data: {
+          recipientId: admin.id,
+          title: "New Contact Message",
+          message: `${name} sent a message: "${subject}"`,
+          type: "SYSTEM",
+          link: "/admin/contacts",
+        },
+      });
+
+      // Real-time socket notification
+      const { io } = await import("../../server.js");
+      io.to(admin.id).emit("newNotification", {
+        title: "New Contact Message",
+        message: `${name} sent a message: "${subject}"`,
+      });
+    }
+
+    res.status(200).json({ message: "Message sent successfully!" });
   } catch (err) {
     console.error("Contact form error:", err);
     res.status(500).json({ message: "Failed to send message. Please try again." });

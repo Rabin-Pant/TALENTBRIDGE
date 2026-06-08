@@ -6,7 +6,8 @@ import socket from "../api/socket";
 import {
   Home, Briefcase, FileText, User, Bell,
   PlusCircle, Users, Shield, MessageCircle,
-  Network, LayoutDashboard, ChevronRight
+  Network, LayoutDashboard, ChevronRight,
+  Mail
 } from "lucide-react";
 
 const seekerLinks = [
@@ -27,10 +28,11 @@ const employerLinks = [
 ];
 
 const adminLinks = [
-  { to: "/admin/dashboard",    icon: LayoutDashboard, label: "Dashboard"    },
-  { to: "/admin/users",        icon: Users,           label: "Users"        },
-  { to: "/admin/jobs",         icon: Briefcase,       label: "All Jobs"     },
-  { to: "/admin/applications", icon: FileText,        label: "Applications" },
+  { to: "/admin/dashboard",  icon: LayoutDashboard, label: "Dashboard"    },
+  { to: "/admin/users",      icon: Users,           label: "Users"        },
+  { to: "/admin/jobs",       icon: Briefcase,       label: "All Jobs"     },
+  { to: "/admin/applications",icon: FileText,        label: "Applications" },
+  { to: "/admin/contacts",   icon: Mail,            label: "Messages"     },
 ];
 
 const Sidebar = () => {
@@ -65,7 +67,8 @@ const Sidebar = () => {
     : null;
 
   return (
-    <aside className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex overflow-hidden">
+    /* Changed top-14 to top-16 and h-[calc(100vh-3.5rem)] to h-[calc(100vh-4rem)] */
+    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex overflow-hidden">
 
       {/* ── Profile Card ── */}
       {!isAdmin && (

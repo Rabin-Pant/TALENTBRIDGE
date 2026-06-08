@@ -734,3 +734,39 @@ export const getJobById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getContactMessages = async (req, res) => {
+  try {
+    const messages = await prisma.contactMessage.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    const unreadCount = messages.filter((m) => !m.read).length;
+    res.json({ messages, unreadCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const markContactRead = async (req, res) => {
+  try {
+    await prisma.contactMessage.update({
+      where: { id: req.params.id },
+      data: { read: true },
+    });
+    res.json({ message: "Marked as read" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const deleteContact = async (req, res) => {
+  try {
+    await prisma.contactMessage.delete({ where: { id: req.params.id } });
+    res.json({ message: "Deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
