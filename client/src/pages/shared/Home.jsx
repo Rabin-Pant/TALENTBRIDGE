@@ -144,17 +144,25 @@ const CreatePost = ({ onPost, user }) => {
   );
 };
 
-const CommentSection = ({ postId, initialComments = [], initialCount = 0, user }) => {
+const CommentSection = ({ postId, initialComments = [], initialCount = 0, user, postAuthorId }) => {
   const [comments, setComments] = useState(initialComments);
   const [count, setCount] = useState(initialCount);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [fetching, setFetching] = useState(false);
+  
+  // 👇 New state to track if a user is currently replying to someone
+  const [replyingTo, setReplyingTo] = useState(null); 
 
   const loadAll = async () => {
     if (fetching) return;
-    try { setFetching(true); const res = await api.get(`/feed/${postId}/comments`); setComments(res.data.comments); setExpanded(true); }
+    try { 
+      setFetching(true); 
+      const res = await api.get(`/feed/${postId}/comments`); 
+      setComments(res.data.comments); 
+      setExpanded(true); 
+    }
     catch (err) { console.error(err); } finally { setFetching(false); }
   };
 
@@ -162,11 +170,72 @@ const CommentSection = ({ postId, initialComments = [], initialCount = 0, user }
     if (!text.trim()) return;
     try {
       setLoading(true);
-      const res = await api.post(`/feed/${postId}/comment`, { content: text });
-      setComments((prev) => [...prev, res.data.comment]);
-      setCount((c) => c + 1); setText(""); setExpanded(true);
+      // Pass parentId if we are replying
+      const payload = { content: text, parentId: replyingTo?.id || null };
+      const res = await api.post(`/feed/${postId}/comment`, payload);
+      
+      if (replyingTo) {
+        // Append reply visually to the parent comment
+        setComments((prev) => prev.map(c => c.id === replyingTo.id ? { ...c, replies: [...(c.replies || []), res.data.comment] } : c));
+      } else {
+        setComments((prev) => [...prev, res.data.comment]);
+      }
+      
+      setCount((c) => c + 1); 
+      setText(""); 
+      setReplyingTo(null); // Clear reply state
+      setExpanded(true);
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Are you sure you want to delete this comment?")) return;
+    try {
+      await api.delete(`/feed/comment/${commentId}`);
+      // Visually remove it from state (checks both top level and replies)
+      setComments((prev) => prev.filter(c => c.id !== commentId).map(c => ({
+        ...c,
+        replies: c.replies ? c.replies.filter(r => r.id !== commentId) : []
+      })));
+      setCount((c) => c - 1);
+    } catch (err) { console.error(err); alert("Failed to delete comment"); }
+  };
+
+  const CommentBlock = ({ c, isReply = false }) => (
+    <div className={`flex items-start gap-2 ${isReply ? "mt-2" : "mt-3"}`}>
+      <Avatar name={c.author?.fullName} role={c.author?.role} size="xs" profilePicture={c.author?.profilePicture} />
+      <div className="flex-1">
+        <div className="bg-gray-50 rounded-2xl rounded-tl-sm px-3 py-2 inline-block max-w-full">
+          <div className="flex items-baseline gap-2">
+            <Link to={`/profile/${c.author?.id}`} className="text-xs font-semibold text-gray-900 hover:underline">{c.author?.fullName}</Link>
+            <span className="text-xs text-gray-400">{timeAgo(c.createdAt)}</span>
+          </div>
+          <p className="text-sm text-gray-700 mt-0.5 leading-snug">{c.content}</p>
+        </div>
+        
+        {/* ACTION BUTTONS (Reply & Delete) */}
+        <div className="flex items-center gap-3 px-2 mt-0.5 mb-1">
+          {!isReply && (
+            <button onClick={() => setReplyingTo({ id: c.id, name: c.author?.fullName })} className="text-[11px] font-semibold text-gray-500 hover:text-blue-600 transition-colors">
+              Reply
+            </button>
+          )}
+          {(user?.id === c.author?.id || user?.id === postAuthorId) && (
+            <button onClick={() => handleDeleteComment(c.id)} className="text-[11px] font-semibold text-gray-400 hover:text-red-500 transition-colors">
+              Delete
+            </button>
+          )}
+        </div>
+
+        {/* Render Replies if they exist */}
+        {!isReply && c.replies && c.replies.length > 0 && (
+          <div className="pl-6 border-l-2 border-gray-100 ml-2">
+            {c.replies.map(reply => <CommentBlock key={reply.id} c={reply} isReply={true} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-3">
@@ -175,29 +244,34 @@ const CommentSection = ({ postId, initialComments = [], initialCount = 0, user }
           <ChevronDown size={13} />{fetching ? "Loading..." : `View ${count} comment${count > 1 ? "s" : ""}`}
         </button>
       )}
+      
       {expanded && (
         <div>
-          <button onClick={() => setExpanded(false)} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-2 transition-colors"><ChevronUp size={13} /> Hide</button>
-          <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-            {comments.map((c) => (
-              <div key={c.id} className="flex items-start gap-2">
-                <Avatar name={c.author?.fullName} role={c.author?.role} size="xs" profilePicture={c.author?.profilePicture} />
-                <div className="flex-1 bg-gray-50 rounded-2xl rounded-tl-sm px-3 py-2">
-                  <div className="flex items-baseline gap-2">
-                    <Link to={`/profile/${c.author?.id}`} className="text-xs font-semibold text-gray-900 hover:underline">{c.author?.fullName}</Link>
-                    <span className="text-xs text-gray-400">{timeAgo(c.createdAt)}</span>
-                  </div>
-                  <p className="text-sm text-gray-700 mt-0.5 leading-snug">{c.content}</p>
-                </div>
-              </div>
-            ))}
+          <button onClick={() => setExpanded(false)} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-2 transition-colors"><ChevronUp size={13} /> Hide comments</button>
+          <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
+            {comments.map((c) => <CommentBlock key={c.id} c={c} />)}
           </div>
         </div>
       )}
+
+      {replyingTo && (
+        <div className="flex items-center justify-between bg-blue-50 px-3 py-1.5 rounded-lg mb-2 border border-blue-100">
+          <span className="text-xs text-blue-700">Replying to <strong>{replyingTo.name}</strong></span>
+          <button onClick={() => setReplyingTo(null)} className="text-blue-500 hover:text-blue-700"><X size={14}/></button>
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         <Avatar name={user?.fullName} role={user?.role} size="xs" profilePicture={user?.profilePicture} />
         <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 focus-within:border-blue-300 focus-within:bg-white transition-all">
-          <input type="text" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleComment()} placeholder="Write a comment..." className="flex-1 text-sm bg-transparent focus:outline-none text-gray-800 placeholder-gray-400" />
+          <input 
+            type="text" 
+            value={text} 
+            onChange={(e) => setText(e.target.value)} 
+            onKeyDown={(e) => e.key === "Enter" && handleComment()} 
+            placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."} 
+            className="flex-1 text-sm bg-transparent focus:outline-none text-gray-800 placeholder-gray-400" 
+          />
           {text.trim() && <button onClick={handleComment} disabled={loading} className="text-blue-600 disabled:opacity-40 hover:text-blue-700 transition-colors"><Send size={14} /></button>}
         </div>
       </div>
@@ -291,7 +365,13 @@ const PostCard = ({ post, onDelete, user }) => {
       </div>
       {showComments && (
         <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-          <CommentSection postId={post.id} initialComments={post.comments || []} initialCount={post._count?.comments || 0} user={user} />
+<CommentSection 
+  postId={post.id} 
+  initialComments={post.comments || []} 
+  initialCount={post._count?.comments || 0} 
+  user={user} 
+  postAuthorId={post.author?.id} 
+/>
         </div>
       )}
     </div>

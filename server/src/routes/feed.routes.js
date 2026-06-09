@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import authMiddleware from "../middleware/auth.middleware.js";
 import {
   getFeed, createPost, deletePost,
-  toggleLike, addComment, getComments, getUserPosts,
+  toggleLike, addComment, getComments, getUserPosts, deleteComment
 } from "../controllers/feed.controller.js";
 import { getPublicProfile } from "../controllers/connection.controller.js";
 
@@ -40,4 +40,5 @@ router.post("/:id/comment",        addComment);
 router.get("/:id/comments",        getComments);
 router.get("/user/:userId",        getUserPosts);
 router.get("/profile/:userId", getPublicProfile);
+router.delete("/comment/:commentId", deleteComment);
 export default router;

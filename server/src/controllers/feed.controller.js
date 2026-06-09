@@ -180,43 +180,66 @@ export const toggleLike = async (req, res) => {
 // ─── ADD COMMENT ─────────────────────────────────────
 export const addComment = async (req, res) => {
   try {
-    const { content } = req.body;
-    const { id } = req.params;
+    const { content, parentId } = req.body; 
+    const { id: postId } = req.params;
     const userId = req.user.id;
 
     if (!content) return res.status(400).json({ message: "Comment cannot be empty" });
 
+    // 1. Create the comment
     const comment = await prisma.comment.create({
-      data: { content, postId: id, authorId: userId },
+      data: { content, postId, authorId: userId, parentId: parentId || null },
       include: {
-        author: {
-          select: { id: true, fullName: true, currentTitle: true, role: true },
-        },
-      },
+        author: { select: { fullName: true } }
+      }
     });
 
-    const post = await prisma.post.findUnique({
-      where: { id },
-      select: { authorId: true }
-    });
+    // 2. Notification Logic
+    try {
+      const snippet = `"${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`;
+      const senderName = comment.author.fullName;
 
-    if (post && post.authorId !== userId) {
-      const commenter = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { fullName: true }
-      });
+      if (parentId) {
+        // --- REPLY SCENARIO: Notify the person you are replying to ---
+        const parentComment = await prisma.comment.findUnique({
+          where: { id: parentId },
+          select: { authorId: true }
+        });
 
-      const notification = await prisma.notification.create({
-        data: {
-          recipientId: post.authorId,
-          title: "New comment on your post",
-          message: `${commenter.fullName} commented: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
-          type: "COMMENT",
-          link: `/home?post=${id}#comments`,  // ← Add post ID to link
-        },
-      });
+        if (parentComment && parentComment.authorId !== userId) {
+          const notification = await prisma.notification.create({
+            data: {
+              recipientId: parentComment.authorId,
+              title: "New reply to your comment",
+              message: `${senderName} replied: ${snippet}`,
+              type: "COMMENT",
+              link: `/home?post=${postId}#comments`
+            }
+          });
+          io.to(parentComment.authorId).emit("newNotification", notification);
+        }
+      } else {
+        // --- POST COMMENT SCENARIO: Notify the post owner ---
+        const post = await prisma.post.findUnique({
+          where: { id: postId },
+          select: { authorId: true }
+        });
 
-      io.to(post.authorId).emit("newNotification", notification);
+        if (post && post.authorId !== userId) {
+          const notification = await prisma.notification.create({
+            data: {
+              recipientId: post.authorId,
+              title: "New comment on your post",
+              message: `${senderName} commented: ${snippet}`,
+              type: "COMMENT",
+              link: `/home?post=${postId}#comments`
+            }
+          });
+          io.to(post.authorId).emit("newNotification", notification);
+        }
+      }
+    } catch (notifErr) {
+      console.error("Notification failed:", notifErr);
     }
 
     res.status(201).json({ comment });
@@ -225,20 +248,53 @@ export const addComment = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 // ─── GET POST COMMENTS ───────────────────────────────
 export const getComments = async (req, res) => {
   try {
     const comments = await prisma.comment.findMany({
-      where: { postId: req.params.id },
+      
+      where: { postId: req.params.id, parentId: null },
       orderBy: { createdAt: "asc" },
       include: {
         author: {
-          select: { id: true, fullName: true, currentTitle: true, role: true },
+          select: { id: true, fullName: true, currentTitle: true, role: true, profilePicture: true },
         },
+        
+        replies: {
+          include: {
+            author: { select: { id: true, fullName: true, profilePicture: true } }
+          },
+          orderBy: { createdAt: "asc" }
+        }
       },
     });
     res.json({ comments });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── DELETE COMMENT ──────────────────────────────────
+export const deleteComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const userId = req.user.id;
+
+    const comment = await prisma.comment.findUnique({
+      where: { id: commentId },
+      include: { post: true }
+    });
+
+    if (!comment) return res.status(404).json({ message: "Comment not found" });
+
+    // Security: Only the comment author OR the post owner can delete it
+    if (comment.authorId !== userId && comment.post.authorId !== userId) {
+      return res.status(403).json({ message: "Not authorized to delete this comment" });
+    }
+
+    await prisma.comment.delete({ where: { id: commentId } });
+    res.json({ message: "Comment deleted successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
