@@ -311,40 +311,42 @@ export const checkEmail = async (req, res) => {
   }
 };
 
-// ─── DIRECT RESET PASSWORD (Secured with current password verification) ─────
+// ─── DIRECT RESET PASSWORD  ─────────────────────────────
 export const resetPasswordDirect = async (req, res) => {
   try {
+    // 1. Accept currentPassword from the frontend request body
     const { email, currentPassword, newPassword } = req.body;
 
+    // 2. Enforce all fields are required
     if (!email || !currentPassword || !newPassword) {
-      return res.status(400).json({ message: "Email, current password, and new password are required" });
+      return res.status(400).json({ message: "All fields (Email, Current Password, and New Password) are required" });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    // 1. Find user by email
+    // 3. Find user by email
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: email.toLowerCase().trim() },
     });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 2. Verify current password matches database
+    // 4. CRITICAL FIX: Verify current password matches what's stored in the database
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Current password is incorrect" });
+      return res.status(401).json({ message: "Current password is incorrect" });
     }
 
-    // 3. Prevent using the exact same password again
+    // 5. Prevent user from picking the same password
     if (currentPassword === newPassword) {
-      return res.status(400).json({ message: "New password cannot be the same as current password" });
+      return res.status(400).json({ message: "New password cannot be identical to your current password" });
     }
 
-    // 4. Hash new password and save
+    // 6. Hash new password and save safely
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await prisma.user.update({
@@ -352,12 +354,10 @@ export const resetPasswordDirect = async (req, res) => {
       data: { password: hashedPassword },
     });
 
-    console.log(`[AUDIT] User ${email} reset their password safely using verification`);
-
-    res.json({ message: "Password reset successfully! You can now login." });
+    return res.json({ message: "Password reset successfully! Redirecting..." });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Reset Password Error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
