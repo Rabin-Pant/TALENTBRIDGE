@@ -18,6 +18,7 @@ const stepImages = [
 ];
 
 const Landing = () => {
+  const navigate = useNavigate(); // <-- added for CTA buttons
   const [visible, setVisible] = useState(false);
   const [stats, setStats] = useState({
     totalJobs: 0,
@@ -53,10 +54,10 @@ const Landing = () => {
   const features = [
     { icon: Briefcase, title: "Find Your Dream Job", description: `Browse ${stats.totalJobs.toLocaleString()}+ active job listings from top companies.`, color: "blue" },
     { icon: Building2, title: "Hire Top Talent", description: `Connect with ${stats.totalSeekers.toLocaleString()}+ qualified job seekers.`, color: "green" },
-    { icon: MessageCircle, title: "Real-time Messaging", description: "Communicate instantly with employers or candidates.", color: "purple" },
-    { icon: Users, title: "Build Your Network", description: `Join ${stats.totalSeekers.toLocaleString()}+ professionals.`, color: "amber" },
+    { icon: MessageCircle, title: "Real-time Messaging", description: "Communicate instantly with employers or candidates.", color: "blue" },
+    { icon: Users, title: "Build Your Network", description: `Join ${stats.totalSeekers.toLocaleString()}+ professionals.`, color: "gray" },
     { icon: FileText, title: "Easy Applications", description: `Over ${stats.totalHires.toLocaleString()}+ successful hires.`, color: "teal" },
-    { icon: Award, title: "Career Growth", description: "Get personalized job recommendations.", color: "pink" },
+    { icon: Award, title: "Career Growth", description: "Get personalized job recommendations.", color: "indigo" },
   ];
 
   const statItems = [
@@ -77,7 +78,7 @@ const Landing = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center">
         <div className="relative w-20 h-20 animate-float">
           <div className="absolute inset-0 rounded-full border-4 border-blue-100 shadow-xl" />
           <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin-fast" />
@@ -87,43 +88,90 @@ const Landing = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 perspective-wrapper">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 perspective-wrapper">
       
       {/* 3D Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-pulse-3d"></div>
-        <div className="absolute top-40 -left-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 animate-pulse-3d-delayed"></div>
+        <div className="absolute top-40 -left-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 animate-pulse-3d-delayed"></div>
       </div>
 
-
-      {/* Hero Section */}
-      <div className={`relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-36 transition-all duration-1000 transform-style-3d ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}>
-        <div className="text-center animate-float-slow">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/80 backdrop-blur-sm border border-blue-100 rounded-full mb-8 shadow-sm hover:shadow-md transition-shadow">
-            <Sparkles size={16} className="text-blue-600 animate-pulse" />
-            <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Connect Talent with Opportunity</span>
+      {/* Hero Section - Redesigned Split Layout */}
+      <div className={`relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32 transition-all duration-1000 transform-style-3d ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}>
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+          {/* Left side - Text content */}
+          <div className="flex-1 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/80 backdrop-blur-sm border border-blue-100 rounded-full mb-8 shadow-sm hover:shadow-md transition-shadow">
+              <Sparkles size={16} className="text-blue-600 animate-pulse" />
+              <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">Connect Talent with Opportunity</span>
+            </div>
+            <h1 className="text-6xl lg:text-7xl xl:text-8xl font-black text-gray-900 mb-8 tracking-tight drop-shadow-sm">
+              Your Career Journey
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 bg-clip-text text-transparent bg-300% animate-gradient">Starts Here</span>
+            </h1>
+            <p className="text-xl lg:text-2xl text-gray-600 max-w-2xl mx-auto lg:mx-0 mb-10 font-light">
+              Find your dream job or discover the perfect candidate. TalentBridge connects talented professionals with leading companies.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
+              <Link
+                to="/register"
+                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(37,99,235,0.5)] flex items-center justify-center gap-2 text-lg group"
+              >
+                Get Started <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+              </Link>
+              <Link
+                to="/login"
+                className="px-8 py-4 bg-white border-2 border-gray-200 text-gray-700 rounded-2xl font-bold hover:border-blue-500 hover:text-blue-600 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] flex items-center justify-center gap-2 text-lg group"
+              >
+                Sign In <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+            {/* Trust badges */}
+            <div className="mt-10 flex flex-wrap gap-6 justify-center lg:justify-start text-sm text-gray-500">
+              <div className="flex items-center gap-2"><Shield size={18} className="text-blue-500" /> Secure & Trusted</div>
+              <div className="flex items-center gap-2"><Star size={18} className="text-blue-500" /> 4.9/5 Rating</div>
+            </div>
           </div>
-          <h1 className="text-6xl lg:text-8xl font-black text-gray-900 mb-8 tracking-tight drop-shadow-sm">
-            Your Career Journey
-            <br />
-            <span className="bg-gradient-to-r from-blue-600 via-purple-500 to-blue-600 bg-clip-text text-transparent bg-300% animate-gradient">Starts Here</span>
-          </h1>
-          <p className="text-xl lg:text-2xl text-gray-600 max-w-3xl mx-auto mb-10 font-light">
-            Find your dream job or discover the perfect candidate. TalentBridge connects talented professionals with leading companies.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-5 justify-center">
-            <Link
-              to="/register"
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(37,99,235,0.5)] flex items-center justify-center gap-2 text-lg group"
-            >
-              Get Started <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
-            </Link>
-            <Link
-              to="/login"
-              className="px-8 py-4 bg-white border-2 border-gray-200 text-gray-700 rounded-2xl font-bold hover:border-blue-500 hover:text-blue-600 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] flex items-center justify-center gap-2 text-lg group"
-            >
-              Sign In <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
+
+          {/* Right side - Image collage with 3D hover effects */}
+          <div className="flex-1 relative perspective-1000">
+            <div className="relative grid grid-cols-2 gap-4 auto-rows-min transform-style-3d">
+              {/* Main large image */}
+              <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-white card-3d-subtle">
+                <img
+                  src="https://images.unsplash.com/photo-1521737852567-6949f3f9f2b5?w=600&h=400&fit=crop"
+                  alt="Team collaboration"
+                  className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+              </div>
+              {/* Small image 1 */}
+              <div className="rounded-xl overflow-hidden shadow-lg border border-white/20 bg-white card-3d-subtle">
+                <img
+                  src="https://images.unsplash.com/photo-1556761175-4b46a572b786?w=200&h=150&fit=crop"
+                  alt="Job interview"
+                  className="w-full h-28 object-cover hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              {/* Small image 2 */}
+              <div className="rounded-xl overflow-hidden shadow-lg border border-white/20 bg-white card-3d-subtle">
+                <img
+                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=200&h=150&fit=crop"
+                  alt="Team work"
+                  className="w-full h-28 object-cover hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              {/* Floating card 1 */}
+              <div className="absolute -left-8 -top-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-3 border border-blue-100 hidden lg:flex items-center gap-2 animate-float">
+                <Briefcase size={20} className="text-blue-600" />
+                <span className="text-sm font-semibold text-gray-800">{stats.totalJobs.toLocaleString()}+ Jobs</span>
+              </div>
+              {/* Floating card 2 */}
+              <div className="absolute -right-6 bottom-12 bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-3 border border-blue-100 hidden lg:flex items-center gap-2 animate-float-delayed">
+                <Users size={20} className="text-blue-600" />
+                <span className="text-sm font-semibold text-gray-800">Hired Today</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -135,7 +183,7 @@ const Landing = () => {
             {statItems.map((stat, idx) => (
               <div key={idx} className="text-center group card-3d-subtle p-6 rounded-2xl hover:bg-white transition-all duration-300">
                 <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl flex items-center justify-center group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 shadow-inner">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl flex items-center justify-center group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 shadow-inner">
                     <stat.icon size={28} className="text-blue-600" />
                   </div>
                 </div>
@@ -162,8 +210,8 @@ const Landing = () => {
                 key={idx}
                 className="group card-3d bg-white rounded-3xl p-8 border border-gray-100 relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-purple-50 rounded-bl-full -z-10 group-hover:scale-150 transition-transform duration-700 opacity-50"></div>
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center mb-6 group-hover:-translate-y-2 group-hover:shadow-lg transition-all duration-300 transform-style-3d">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-blue-100 rounded-bl-full -z-10 group-hover:scale-150 transition-transform duration-700 opacity-50"></div>
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center mb-6 group-hover:-translate-y-2 group-hover:shadow-lg transition-all duration-300 transform-style-3d">
                   <feature.icon size={26} className="text-blue-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">{feature.title}</h3>
@@ -178,9 +226,9 @@ const Landing = () => {
       <div className="py-24 bg-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 perspective-1000">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-50 rounded-full mb-4 border border-purple-100">
-              <Zap size={16} className="text-purple-600" />
-              <span className="text-sm font-bold text-purple-600 tracking-wide uppercase">Simple Process</span>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 rounded-full mb-4 border border-blue-100">
+              <Zap size={16} className="text-blue-600" />
+              <span className="text-sm font-bold text-blue-600 tracking-wide uppercase">Simple Process</span>
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-4">How TalentBridge Works</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -195,10 +243,7 @@ const Landing = () => {
               >
                 {/* 3D Round Image Container */}
                 <div className={`relative mb-8 flex justify-center ${idx % 2 === 0 ? 'animate-float' : 'animate-float-delayed'}`}>
-                  
-                  {/* Decorative Spinning Ring */}
                   <div className="absolute inset-0 rounded-full border-2 border-dashed border-blue-300 opacity-0 group-hover:opacity-100 group-hover:animate-spin-slow transition-opacity duration-500 scale-110"></div>
-                  
                   <div className="w-40 h-40 rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.1)] group-hover:shadow-[0_20px_40px_rgba(37,99,235,0.2)] transition-shadow duration-500 relative z-10 border-4 border-white">
                     <img
                       src={step.image}
@@ -206,11 +251,10 @@ const Landing = () => {
                       className="w-full h-full object-cover group-hover:scale-125 group-hover:rotate-3 transition-transform duration-700"
                     />
                   </div>
-                  <div className="absolute -top-2 -right-4 w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl rotate-12 flex items-center justify-center text-white text-lg font-black shadow-xl group-hover:rotate-0 group-hover:scale-110 transition-all duration-300 z-20">
+                  <div className="absolute -top-2 -right-4 w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl rotate-12 flex items-center justify-center text-white text-lg font-black shadow-xl group-hover:rotate-0 group-hover:scale-110 transition-all duration-300 z-20">
                     {step.number}
                   </div>
                 </div>
-                
                 <div className="flex justify-center mb-4">
                   <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center group-hover:-translate-y-2 group-hover:shadow-md transition-all duration-300">
                     <step.icon size={22} className="text-blue-600" />
@@ -264,76 +308,76 @@ const Landing = () => {
         </div>
       )}
 
-      {/* CTA Section */}
+      {/* CTA SECTION – FIXED: no animations, working buttons */}
       <div className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-700"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-800"></div>
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 card-3d">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-md">Ready to Get Started?</h2>
           <p className="text-blue-100 text-xl mb-10 font-medium">
             Join {stats.totalSeekers.toLocaleString()}+ job seekers and {stats.totalEmployers.toLocaleString()}+ companies on TalentBridge
           </p>
           <div className="flex flex-col sm:flex-row gap-5 justify-center">
-            <Link
-              to="/register"
-              className="px-10 py-4 bg-white text-blue-700 rounded-2xl font-bold hover:bg-blue-50 transition-all duration-300 transform hover:-translate-y-2 shadow-[0_20px_40px_rgba(0,0,0,0.2)] text-lg"
+            <button
+              onClick={() => navigate("/register")}
+              className="px-10 py-4 bg-white text-blue-700 rounded-2xl font-bold hover:bg-blue-50 transition-all duration-300 shadow-[0_20px_40px_rgba(0,0,0,0.2)] text-lg cursor-pointer"
             >
               Create Free Account
-            </Link>
-            <Link
-              to="/login"
-              className="px-10 py-4 border-2 border-white/50 backdrop-blur-sm text-white rounded-2xl font-bold hover:bg-white/10 hover:border-white transition-all duration-300 transform hover:-translate-y-2 text-lg"
+            </button>
+            <button
+              onClick={() => navigate("/login")}
+              className="px-10 py-4 border-2 border-white/50 backdrop-blur-sm text-white rounded-2xl font-bold hover:bg-white/10 hover:border-white transition-all duration-300 text-lg cursor-pointer"
             >
               Sign In
-            </Link>
+            </button>
           </div>
         </div>
       </div>
 
-     {/* Footer */}
-<footer className="bg-gray-900 text-gray-400 py-12">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div className="grid md:grid-cols-4 gap-8">
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <Briefcase size={16} className="text-white" />
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-400 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Briefcase size={16} className="text-white" />
+                </div>
+                <span className="font-bold text-white text-lg">TalentBridge</span>
+              </div>
+              <p className="text-sm">Connecting talent with opportunity worldwide.</p>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-3">For Job Seekers</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/register" className="hover:text-white transition">Browse Jobs</Link></li>
+                <li><Link to="/register" className="hover:text-white transition">Career Advice</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-3">For Employers</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/register" className="hover:text-white transition">Post a Job</Link></li>
+                <li><Link to="/register" className="hover:text-white transition">Hiring Solutions</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-3">Company</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/" className="hover:text-white transition">Home</Link></li>
+                <li><Link to="/about" className="hover:text-white transition">About Us</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition">Contact</Link></li>
+                <li><Link to="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-white transition">Terms of Service</Link></li>
+              </ul>
+            </div>
           </div>
-          <span className="font-bold text-white text-lg">TalentBridge</span>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
+            <p>&copy; 2026 TalentBridge. All rights reserved.</p>
+          </div>
         </div>
-        <p className="text-sm">Connecting talent with opportunity worldwide.</p>
-      </div>
-      <div>
-        <h4 className="text-white font-semibold mb-3">For Job Seekers</h4>
-        <ul className="space-y-2 text-sm">
-          <li><Link to="/register" className="hover:text-white transition">Browse Jobs</Link></li>
-          <li><Link to="/register" className="hover:text-white transition">Career Advice</Link></li>
-        </ul>
-      </div>
-      <div>
-        <h4 className="text-white font-semibold mb-3">For Employers</h4>
-        <ul className="space-y-2 text-sm">
-          <li><Link to="/register" className="hover:text-white transition">Post a Job</Link></li>
-          <li><Link to="/register" className="hover:text-white transition">Hiring Solutions</Link></li>
-        </ul>
-      </div>
-      <div>
-        <h4 className="text-white font-semibold mb-3">Company</h4>
-        <ul className="space-y-2 text-sm">
-          <li><Link to="/" className="hover:text-white transition">Home</Link></li>
-          <li><Link to="/about" className="hover:text-white transition">About Us</Link></li>
-          <li><Link to="/contact" className="hover:text-white transition">Contact</Link></li>
-          <li><Link to="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
-          <li><Link to="/terms" className="hover:text-white transition">Terms of Service</Link></li>
-        </ul>
-      </div>
-    </div>
-    <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-      <p>&copy; 2026 TalentBridge. All rights reserved.</p>
-    </div>
-  </div>
-</footer>
+      </footer>
 
       {/* Advanced Custom CSS for 3D and Animations */}
       <style jsx>{`

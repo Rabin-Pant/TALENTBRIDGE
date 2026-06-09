@@ -21,8 +21,7 @@ const sanitizeInput = (input) => {
 };
 
 const isValidEmail = (email) => {
- // strictly allow only gmail, yahoo, outlook, and hotmail
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook|hotmail)\\.com$/;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return emailRegex.test(email);
 };
 
