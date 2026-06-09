@@ -54,19 +54,23 @@ const AdminPosts = () => {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) return;
-    try {
-      setDeletingId(id);
-      await api.delete(`/admin/posts/${id}`);
-      setPosts((prev) => prev.filter((p) => p.id !== id));
-      showToast("Post deleted successfully");
-    } catch {
-      showToast("Failed to delete post", "error");
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
+  if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) return;
+  
+  try {
+    setDeletingId(id);
+    
+    // Smooth and clean simple DELETE request
+    await api.delete(`/admin/posts/${id}`);
+    
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+    showToast("Post deleted successfully");
+  } catch (err) {
+    console.error("Admin delete action failed:", err);
+    showToast("Failed to delete post", "error");
+  } finally {
+    setDeletingId(null);
+  }
+};
   const filtered = posts.filter((p) =>
     !search ||
     p.content?.toLowerCase().includes(search.toLowerCase()) ||

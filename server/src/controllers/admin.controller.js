@@ -795,39 +795,66 @@ export const adminDeletePost = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const post = await prisma.post.findUnique({ 
+    // 1. Fetch the post first to find out who owns it before deleting
+    const post = await prisma.post.findUnique({
       where: { id },
-      select: {
-        id: true,
-        authorId: true, 
-        content: true
-      }
     });
-    
+
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    const contentSnippet = post.content.length > 30 
-      ? `"${post.content.slice(0, 30)}..."` 
-      : `"${post.content}"`;
+    // Identify the user who created the post
+    const recipientId = post.authorId || post.userId || post.employerId;
 
-    const warningMessage = `Warning: Your post containing ${contentSnippet} was removed by administration for violating community guidelines. Repeated violations may result in account suspension.`;
+    // 💡 DYNAMIC POST NAME: Tries title first. If title doesn't exist, it uses a snippet of the post content.
+    const postName = post.title || (post.content ? (post.content.length > 30 ? post.content.substring(0, 30) + "..." : post.content) : "your post");
 
-    await prisma.notification.create({
-      data: {
-        userId: post.authorId,
-        title: "Content Removal Warning",
-        message: warningMessage,
-        type: "SYSTEM", 
-      },
+    // 2. Clear out all relations first so the database doesn't block the deletion
+    await prisma.comment.deleteMany({ where: { postId: id } });
+    await prisma.like.deleteMany({ where: { postId: id } });
+
+    // 3. Delete the actual post
+    await prisma.post.delete({
+      where: { id },
     });
 
-    await prisma.post.delete({ where: { id } });
+    // 4. Automatically send your exact warning notification
+    if (recipientId) {
+      try {
+        const automatedWarning = `Your recent post "${postName}" violated our community rules and guide. We have taken down your post and if done again your account will be suspended.`;
 
-    res.json({ message: "Post successfully moderated and warning notification dispatched." });
+        await prisma.notification.create({
+          data: {
+            recipientId: recipientId,
+            title: "Account Warning: Post Removed",
+            message: automatedWarning,
+            type: "SYSTEM",
+          },
+        });
+
+        // Optional real-time alert via Socket.io
+        try {
+          const { io } = await import("../../server.js");
+          if (io) {
+            io.to(recipientId).emit("newNotification", {
+              title: "Account Warning: Post Removed",
+              message: automatedWarning,
+              type: "SYSTEM",
+            });
+          }
+        } catch (ioErr) {
+          console.log("Socket notification skipped.");
+        }
+
+      } catch (notifErr) {
+        console.error("Failed to send automated notification:", notifErr);
+      }
+    }
+
+    res.json({ message: "Post deleted and warning sent automatically" });
   } catch (err) {
-    console.error("Error in adminDeletePost moderation flow:", err);
-    res.status(500).json({ message: "Server error during content deletion" });
+    console.error("Admin post deletion error:", err);
+    res.status(500).json({ message: "Server error occurred while deleting post" });
   }
 };
