@@ -311,19 +311,20 @@ export const checkEmail = async (req, res) => {
   }
 };
 
-// ─── DIRECT RESET PASSWORD (Without email token) ─────
+// ─── DIRECT RESET PASSWORD (Secured with current password verification) ─────
 export const resetPasswordDirect = async (req, res) => {
   try {
-    const { email, newPassword } = req.body;
+    const { email, currentPassword, newPassword } = req.body;
 
-    if (!email || !newPassword) {
-      return res.status(400).json({ message: "Email and new password are required" });
+    if (!email || !currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Email, current password, and new password are required" });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
+    // 1. Find user by email
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
     });
@@ -332,6 +333,18 @@ export const resetPasswordDirect = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // 2. Verify current password matches database
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    // 3. Prevent using the exact same password again
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: "New password cannot be the same as current password" });
+    }
+
+    // 4. Hash new password and save
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await prisma.user.update({
@@ -339,7 +352,7 @@ export const resetPasswordDirect = async (req, res) => {
       data: { password: hashedPassword },
     });
 
-    console.log(`[AUDIT] User ${email} reset their password`);
+    console.log(`[AUDIT] User ${email} reset their password safely using verification`);
 
     res.json({ message: "Password reset successfully! You can now login." });
   } catch (err) {

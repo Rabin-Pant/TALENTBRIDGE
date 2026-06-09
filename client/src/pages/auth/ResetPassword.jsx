@@ -1,20 +1,24 @@
 // client/src/pages/auth/ResetPassword.jsx
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Briefcase, Mail, Lock, Eye, EyeOff, CheckCircle, ArrowLeft } from "lucide-react";
+import { Briefcase, Mail, Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
 import api from "../../api/axios";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState(""); // State for current password
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  const [showCurrent, setShowCurrent] = useState(false); // Eye toggle for current password
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [step, setStep] = useState(1); // Step 1: email, Step 2: new password
+  const [step, setStep] = useState(1); // Step 1: email, Step 2: credentials update
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -51,7 +55,8 @@ const ResetPassword = () => {
     e.preventDefault();
     setError("");
 
-    if (!newPassword || !confirmPassword) {
+    // Validate all 3 fields are provided
+    if (!currentPassword || !newPassword || !confirmPassword) {
       setError("Please fill in all fields");
       return;
     }
@@ -68,7 +73,12 @@ const ResetPassword = () => {
 
     try {
       setLoading(true);
-      await api.post("/auth/reset-password-direct", { email, newPassword });
+      // Sending currentPassword along with email and newPassword to your updated backend controller
+      await api.post("/auth/reset-password-direct", { 
+        email, 
+        currentPassword, 
+        newPassword 
+      });
       setSuccess(true);
       setTimeout(() => {
         navigate("/login");
@@ -96,7 +106,7 @@ const ResetPassword = () => {
             Reset Password
           </h1>
           <p className="text-gray-500 mt-2">
-            {step === 1 ? "Enter your email to reset password" : "Create a new password"}
+            {step === 1 ? "Enter your email to reset password" : "Confirm identity and create a new password"}
           </p>
         </div>
 
@@ -172,6 +182,32 @@ const ResetPassword = () => {
                 </div>
               )}
 
+              {/* CURRENT PASSWORD INPUT FIELD */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type={showCurrent ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter your current password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrent(!showCurrent)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* NEW PASSWORD INPUT FIELD */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   New Password
@@ -197,6 +233,7 @@ const ResetPassword = () => {
                 <p className="text-xs text-gray-400 mt-1">Must be at least 6 characters</p>
               </div>
 
+              {/* CONFIRM PASSWORD INPUT FIELD */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Confirm Password
