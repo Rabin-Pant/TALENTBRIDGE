@@ -3,12 +3,6 @@ import jwt from "jsonwebtoken";
 import prisma from "../config/db.js";
 import crypto from "crypto";
 
-// --- EXTRA LAYER: Setup DOMPurify for XSS Protection ---
-import createDOMPurify from "dompurify";
-import { JSDOM } from "jsdom";
-const window = new JSDOM("").window;
-const DOMPurify = createDOMPurify(window);
-
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, role: user.role, email: user.email },
@@ -20,8 +14,10 @@ const generateToken = (user) => {
 // ─── HELPER FUNCTIONS ───────────────────────────────────
 const sanitizeInput = (input) => {
   if (!input) return null;
-  // Upgraded to use DOMPurify for absolute XSS security
-  return DOMPurify.sanitize(String(input).trim()).slice(0, 255);
+  return String(input)
+    .trim()
+    .replace(/[<>'\"]/g, '')
+    .slice(0, 255);
 };
 
 const isValidEmail = (email) => {
@@ -41,24 +37,16 @@ export const register = async (req, res) => {
     } = req.body;
 
     email = email ? email.toLowerCase().trim() : null;
-    
-    // Check email length boundary
-    if (email && email.length > 255) {
-      return res.status(400).json({ message: "Email is too long" });
-    }
-
     fullName = sanitizeInput(fullName);
     phone = sanitizeInput(phone);
     location = sanitizeInput(location);
     currentTitle = sanitizeInput(currentTitle);
     companyName = sanitizeInput(companyName);
     companyWebsite = sanitizeInput(companyWebsite);
+    companyDescription = sanitizeInput(companyDescription);
     companyRegNumber = sanitizeInput(companyRegNumber);
     companyAddress = sanitizeInput(companyAddress);
     companyPhone = sanitizeInput(companyPhone);
-    
-    // Allow descriptions to be slightly longer but still bounded
-    companyDescription = companyDescription ? DOMPurify.sanitize(String(companyDescription).trim()).slice(0, 2000) : null;
 
     const validRoles = ["SEEKER", "EMPLOYER"];
     if (!validRoles.includes(role)) {
@@ -72,12 +60,9 @@ export const register = async (req, res) => {
     if (!fullName || fullName.length < 3) {
       return res.status(400).json({ message: "Full name must be at least 3 characters" });
     }
-    if (fullName.length > 70) {
-      return res.status(400).json({ message: "Full name is too long" });
+    if (!/^[a-zA-Z\s]+$/.test(fullName)) {
+      return res.status(400).json({ message: "Full name can only contain letters and spaces" });
     }
-    if (!/^[\p{L}\s.'-]+$/u.test(fullName)) {
-  return res.status(400).json({ message: "Full name contains invalid characters" });
-}
 
     if (phone && !/^(97|98)\d{8}$/.test(phone)) {
       return res.status(400).json({ message: "Phone number must start with 97 or 98 and be 10 digits" });
@@ -87,12 +72,8 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "Company phone number must start with 97 or 98 and be exactly 10 digits" });
     }
 
-    // --- EXTRA LAYER: Password Boundary Security ---
     if (!password || password.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
-    }
-    if (password.length > 72) {
-      return res.status(400).json({ message: "Password cannot exceed 72 characters" });
     }
     if (!/^(?=.*[a-zA-Z])(?=.*[0-9])/.test(password)) {
       return res.status(400).json({ message: "Password must contain both letters and numbers" });
@@ -119,7 +100,7 @@ export const register = async (req, res) => {
         password: hashedPassword,
         fullName,
         role,
-        approved: role === "SEEKER",
+        approved: role === "SEEKER" ? true : false,
         phone: phone || null,
         location: location || null,
         currentTitle: currentTitle || null,
@@ -173,11 +154,6 @@ export const login = async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
-    }
-
-    // --- EXTRA LAYER: Input Boundary Checks ---
-    if (email.length > 255 || password.length > 72) {
-      return res.status(400).json({ message: "Invalid credentials input size" });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
@@ -254,6 +230,7 @@ export const getMe = async (req, res) => {
         createdAt: true,
         lastLogin: true,
         profilePicture: true,  
+        // 👇 FIXED: Added these three fields so they load correctly into your Auth Context
         companyRegNumber: true,
         companyAddress: true,
         companyPhone: true,
@@ -269,7 +246,7 @@ export const getMe = async (req, res) => {
   }
 };
 
-// ─── CHANGE PASSWORD (In-app) ─────────────────────────
+// ─── CHANGE PASSWORD (In-app, requires current password) ───
 export const changePassword = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -283,15 +260,17 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ message: "New passwords do not match" });
     }
 
-    if (newPassword.length < 6 || newPassword.length > 72) {
-      return res.status(400).json({ message: "Password must be between 6 and 72 characters" });
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
     if (currentPassword === newPassword) {
       return res.status(400).json({ message: "New password cannot be the same as current password" });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -322,9 +301,6 @@ export const changePassword = async (req, res) => {
 export const checkEmail = async (req, res) => {
   try {
     const { email } = req.body;
-    if (email && email.length > 255) {
-      return res.status(400).json({ exists: false });
-    }
     const user = await prisma.user.findUnique({
       where: { email: email?.toLowerCase() },
     });
@@ -335,19 +311,22 @@ export const checkEmail = async (req, res) => {
   }
 };
 
-// ─── DIRECT RESET PASSWORD ─────────────────────────────
+// ─── DIRECT RESET PASSWORD  ─────────────────────────────
 export const resetPasswordDirect = async (req, res) => {
   try {
+    // 1. Accept currentPassword from the frontend request body
     const { email, currentPassword, newPassword } = req.body;
 
+    // 2. Enforce all fields are required
     if (!email || !currentPassword || !newPassword) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ message: "All fields (Email, Current Password, and New Password) are required" });
     }
 
-    if (newPassword.length < 6 || newPassword.length > 72) {
-      return res.status(400).json({ message: "Password must be between 6 and 72 characters" });
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
+    // 3. Find user by email
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
@@ -356,15 +335,18 @@ export const resetPasswordDirect = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // 4. CRITICAL FIX: Verify current password matches what's stored in the database
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Current password is incorrect" });
     }
 
+    // 5. Prevent user from picking the same password
     if (currentPassword === newPassword) {
       return res.status(400).json({ message: "New password cannot be identical to your current password" });
     }
 
+    // 6. Hash new password and save safely
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await prisma.user.update({
@@ -379,38 +361,32 @@ export const resetPasswordDirect = async (req, res) => {
   }
 };
 
-// ─── CONTACT FORM (SECURE) ─────────────────────────────
 export const submitContact = async (req, res) => {
   try {
-    let { name, email, subject, message } = req.body;
+    const { name, email, subject, message } = req.body;
 
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     const emailRegex = /^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/;
-    if (!emailRegex.test(email) || email.length > 255) {
+    if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Please enter a valid email address" });
     }
 
-    name = DOMPurify.sanitize(name.trim()).slice(0, 100);
-    subject = DOMPurify.sanitize(subject.trim()).slice(0, 150);
-    message = DOMPurify.sanitize(message.trim());
-
-    if (message.length > 5000) {
-      return res.status(400).json({ message: "Message length cannot exceed 5000 characters" });
-    }
-
+    // Save to database
     const contact = await prisma.contactMessage.create({
       data: { name, email, subject, message },
     });
 
+    // Send real-time notification to all admins
     const admins = await prisma.user.findMany({
       where: { role: "ADMIN", active: true },
       select: { id: true },
     });
 
     for (const admin of admins) {
+      // Save notification
       await prisma.notification.create({
         data: {
           recipientId: admin.id,
@@ -421,6 +397,7 @@ export const submitContact = async (req, res) => {
         },
       });
 
+      // Real-time socket notification
       const { io } = await import("../../server.js");
       io.to(admin.id).emit("newNotification", {
         title: "New Contact Message",

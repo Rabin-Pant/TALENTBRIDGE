@@ -96,16 +96,31 @@ const PublicProfile = () => {
   const handleConnect = async () => {
     try {
       setConnecting(true);
-      await api.post("/connections", { receiverId: userId });
+      console.log("[DEBUG] PublicProfile: Sending connection request to user ID:", userId);
+      const response = await api.post("/connections", { receiverId: userId });
+      console.log("[DEBUG] PublicProfile: Success:", response.data);
+
       setConnStatus({ status: "PENDING", isSender: true });
       showToast("Connection request sent!");
     } catch (err) {
-      showToast(err.response?.data?.message || "Failed", "error");
+      console.group("❌ [DEBUG] PublicProfile Connection Error Details");
+      console.error("Target User ID:", userId);
+      console.error("HTTP Status Code:", err.response?.status);
+      console.error("Server Error Response Data:", err.response?.data);
+      console.groupEnd();
+
+      const serverMessage = err.response?.data?.message || "Failed to send connection request";
+      showToast(serverMessage, "error");
+
+      // Auto-remedy UI if backend status was stale
+      if (serverMessage.toLowerCase().includes("already exists")) {
+        console.warn("[DEBUG] Connection exists on backend. Fixing PublicProfile UI state.");
+        setConnStatus({ status: "PENDING", isSender: true });
+      }
     } finally {
       setConnecting(false);
     }
   };
-
   const handleWithdraw = async () => {
     try {
       await api.delete(`/connections/${connStatus.connectionId}`);

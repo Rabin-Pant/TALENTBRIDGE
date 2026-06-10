@@ -15,7 +15,7 @@ const SearchDropdown = ({ isOpen, onClose }) => {
   const searchInputRef = useRef(null);
   const isClickingInside = useRef(false);
 
-  // Helper function to render connection button (NOT a component inside component)
+  // Helper function to render connection button
   const renderConnectionButton = (targetUser) => {
     if (targetUser.connectionStatus === "ACCEPTED") {
       return (
@@ -45,7 +45,6 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                 e.preventDefault();
                 e.stopPropagation();
                 handleAccept(targetUser.connectionId, targetUser.id);
-                isClickingInside.current = false;
               }}
               className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 whitespace-nowrap"
             >
@@ -61,7 +60,6 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                 e.preventDefault();
                 e.stopPropagation();
                 handleDecline(targetUser.connectionId, targetUser.id);
-                isClickingInside.current = false;
               }}
               className="px-3 py-1 border border-gray-300 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 whitespace-nowrap"
             >
@@ -83,7 +81,6 @@ const SearchDropdown = ({ isOpen, onClose }) => {
           e.preventDefault();
           e.stopPropagation();
           handleConnect(targetUser.id);
-          isClickingInside.current = false;
         }}
         disabled={connecting[targetUser.id]}
         className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
@@ -94,16 +91,14 @@ const SearchDropdown = ({ isOpen, onClose }) => {
     );
   };
 
-  // Close dropdown when clicking outside - BULLETPROOFED
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // If we're in the middle of a click inside, don't close
       if (isClickingInside.current) {
         isClickingInside.current = false;
         return;
       }
 
-      // Check if dropdown exists and click is outside
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         onClose();
       }
@@ -147,7 +142,10 @@ const SearchDropdown = ({ isOpen, onClose }) => {
   const handleConnect = async (targetId) => {
     setConnecting(prev => ({ ...prev, [targetId]: true }));
     try {
-      await api.post("/connections", { receiverId: targetId });
+      console.log("[DEBUG] Sending connection request to user ID:", targetId);
+      const response = await api.post("/connections", { receiverId: targetId });
+      console.log("[DEBUG] Connection request response status:", response.status, response.data);
+
       setResults(prev =>
         prev.map(u =>
           u.id === targetId
@@ -156,7 +154,26 @@ const SearchDropdown = ({ isOpen, onClose }) => {
         )
       );
     } catch (err) {
-      console.error("Connection error:", err);
+      // Detailed structured grouping for clear debugging in the browser console
+      console.group("❌ [DEBUG] SearchDropdown Connection Error Details");
+      console.error("Target User ID:", targetId);
+      console.error("HTTP Status Code:", err.response?.status);
+      console.error("Server Error Response Data:", err.response?.data);
+      console.error("Message string:", err.response?.data?.message);
+      console.groupEnd();
+
+      // Graceful fallback: Sync local view state if backend reports connection exists
+      const errorMessage = err.response?.data?.message || "";
+      if (err.response?.status === 400 && errorMessage.toLowerCase().includes("already exists")) {
+        console.warn("[DEBUG] Resolving UI state out-of-sync: setting status to PENDING.");
+        setResults(prev =>
+          prev.map(u =>
+            u.id === targetId
+              ? { ...u, connectionStatus: "PENDING", isSender: true }
+              : u
+          )
+        );
+      }
     } finally {
       setConnecting(prev => ({ ...prev, [targetId]: false }));
     }
@@ -174,6 +191,8 @@ const SearchDropdown = ({ isOpen, onClose }) => {
       );
     } catch (err) {
       console.error("Accept error:", err);
+    } finally {
+      isClickingInside.current = false;
     }
   };
 
@@ -183,6 +202,8 @@ const SearchDropdown = ({ isOpen, onClose }) => {
       setResults(prev => prev.filter(u => u.id !== userId));
     } catch (err) {
       console.error("Decline error:", err);
+    } finally {
+      isClickingInside.current = false;
     }
   };
 
@@ -252,7 +273,7 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                 key={result.id}
                 className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors"
               >
-                {/* Avatar - Clickable to view profile */}
+                {/* Avatar */}
                 <div 
                   className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600 cursor-pointer"
                   onMouseDown={(e) => {
@@ -277,7 +298,7 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                   )}
                 </div>
                 
-                {/* User Info - Clickable to view profile */}
+                {/* User Info */}
                 <div 
                   className="flex-1 min-w-0 cursor-pointer"
                   onMouseDown={(e) => {
@@ -298,7 +319,7 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                   )}
                 </div>
                 
-                {/* Connection Button - Using helper function */}
+                {/* Connection Button */}
                 {renderConnectionButton(result)}
               </div>
             );

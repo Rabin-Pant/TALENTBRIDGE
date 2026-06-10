@@ -388,22 +388,30 @@ export const markAllNotificationsRead = async (req, res) => {
 // ─── UPLOAD PROFILE PICTURE ─────────────────────────
 export const uploadProfilePicture = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      return res.status(400).json({ message: "No image file provided" });
     }
 
+    // Multer diskStorage has already automatically saved the file into "uploads/profiles/"
+    // We save the relative sub-path so your frontend URL matches perfectly
     const profilePicturePath = `profiles/${req.file.filename}`;
 
-    const user = await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: { profilePicture: profilePicturePath },
       select: { id: true, profilePicture: true }
     });
 
-    res.json({ message: "Profile picture uploaded successfully", profilePicture: user.profilePicture });
+    return res.status(200).json({
+      message: "Profile picture updated successfully!",
+      profilePicture: updatedUser.profilePicture,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Profile picture upload error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -426,22 +434,29 @@ export const deleteProfilePicture = async (req, res) => {
 // ─── UPLOAD COVER PICTURE ─────────────────────────
 export const uploadCoverPicture = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      return res.status(400).json({ message: "No image file provided" });
     }
 
+    // Multer diskStorage has already automatically saved the file into "uploads/profiles/"
     const coverPicturePath = `profiles/${req.file.filename}`;
 
-    const user = await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: { coverPicture: coverPicturePath },
       select: { id: true, coverPicture: true }
     });
 
-    res.json({ message: "Cover picture uploaded successfully", coverPicture: user.coverPicture });
+    return res.status(200).json({
+      message: "Cover picture updated successfully!",
+      coverPicture: updatedUser.coverPicture,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Cover picture upload error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 

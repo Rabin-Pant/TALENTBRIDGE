@@ -18,14 +18,14 @@ export const getConnections = async (req, res) => {
           select: {
             id: true, fullName: true, currentTitle: true,
             companyName: true, role: true, location: true,
-            profilePicture: true,  // ← Add this
+            profilePicture: true,
           },
         },
         receiver: {
           select: {
             id: true, fullName: true, currentTitle: true,
             companyName: true, role: true, location: true,
-            profilePicture: true,  // ← Add this
+            profilePicture: true,
           },
         },
       },
@@ -55,7 +55,7 @@ export const getPendingRequests = async (req, res) => {
           select: {
             id: true, fullName: true, currentTitle: true,
             companyName: true, role: true, location: true,
-            profilePicture: true,  // ← Add this
+            profilePicture: true,
           },
         },
       },
@@ -81,9 +81,13 @@ export const getSuggestions = async (req, res) => {
       },
     });
 
+    // FIX: Only exclude users if the status is PENDING or ACCEPTED.
+    // If it was DECLINED, they can be suggested again!
     const excludeIds = [
       userId,
-      ...existing.map((c) => (c.senderId === userId ? c.receiverId : c.senderId)),
+      ...existing
+        .filter((c) => c.status !== "DECLINED")
+        .map((c) => (c.senderId === userId ? c.receiverId : c.senderId)),
     ];
 
     const suggestions = await prisma.user.findMany({
@@ -98,7 +102,7 @@ export const getSuggestions = async (req, res) => {
         id: true, fullName: true, currentTitle: true,
         companyName: true, role: true, location: true,
         industry: true,
-        profilePicture: true,  // ← Add this
+        profilePicture: true,
       },
     });
 
@@ -154,13 +158,30 @@ export const sendRequest = async (req, res) => {
       },
     });
 
-    if (existing) {
-      return res.status(400).json({ message: "Connection already exists", status: existing.status });
-    }
+    let connection;
 
-    const connection = await prisma.connection.create({
-      data: { senderId, receiverId },
-    });
+    if (existing) {
+      // FIX: If a previous request was declined, allow resending it!
+      if (existing.status === "DECLINED") {
+        connection = await prisma.connection.update({
+          where: { id: existing.id },
+          data: {
+            senderId,         // Current user becomes the new sender
+            receiverId,       // Target user becomes the new receiver
+            status: "PENDING",// Reset status back to pending
+            createdAt: new Date() // Reset request timestamp
+          },
+        });
+      } else {
+        // If it's already ACCEPTED or PENDING, block the request
+        return res.status(400).json({ message: "Connection already exists", status: existing.status });
+      }
+    } else {
+      // If no previous record exists, create a brand new one
+      connection = await prisma.connection.create({
+        data: { senderId, receiverId },
+      });
+    }
 
     const sender = await prisma.user.findUnique({
       where: { id: senderId },
@@ -169,14 +190,14 @@ export const sendRequest = async (req, res) => {
 
     // Create notification in database
     const notification = await prisma.notification.create({
-  data: {
-    recipientId: receiverId,
-    title: "New Connection Request",
-    message: `${sender.fullName} sent you a connection request`,
-    type: "SYSTEM",
-    link: `/network`,
-  },
-});
+      data: {
+        recipientId: receiverId,
+        title: "New Connection Request",
+        message: `${sender.fullName} sent you a connection request`,
+        type: "SYSTEM",
+        link: `/network`,
+      },
+    });
 
     // Emit real-time notification
     io.to(receiverId).emit("newNotification", notification);
