@@ -86,11 +86,9 @@ export const applyToJob = async (req, res) => {
     // Handle resume file
     let resumeFileName = null;
     if (req.file) {
-      // Stream the raw uploaded file straight to Cloudinary
       resumeFileName = await uploadToCloudinary(req.file.buffer, "resumes");
       console.log("New resume uploaded to Cloudinary:", resumeFileName);
     } else {
-      // Check if user has existing resume
       const seeker = await prisma.user.findUnique({
         where: { id: seekerId },
         select: { resumeFileName: true }
@@ -124,7 +122,7 @@ export const applyToJob = async (req, res) => {
         jobId,
         applicantId: seekerId,
         coverLetter: coverLetter || null,
-        resumeSnapshot: resumeFileName, // Saves secure live link snapshot
+        resumeSnapshot: resumeFileName,
       },
     });
 
@@ -223,7 +221,6 @@ export const updateProfile = async (req, res) => {
       workExperience,
     } = req.body;
 
-    // Build update data carefully
     const updateData = {};
 
     if (fullName !== undefined)       updateData.fullName       = fullName;
@@ -274,7 +271,6 @@ export const uploadResume = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // Streams to Cloudinary
     const cloudUrl = await uploadToCloudinary(req.file.buffer, "resumes");
 
     await prisma.user.update({
@@ -418,28 +414,33 @@ export const markAllNotificationsRead = async (req, res) => {
   }
 };
 
-// ─── UPLOAD PROFILE PICTURE ─────────────────────────
+// ─── UPLOAD PROFILE PICTURE (Fixed name and target model match router) ───
 export const uploadProfilePicture = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Unauthorized. Please log in again." });
     }
 
-    const cloudUrl = await uploadToCloudinary(req.file.buffer, "profiles");
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided" });
+    }
 
-    const user = await prisma.user.update({
+    const imageUrl = await uploadToCloudinary(req.file.buffer, "profiles");
+
+    const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
-      data: { profilePicture: cloudUrl },
+      data: { profilePicture: imageUrl },
       select: { id: true, profilePicture: true }
     });
 
-    res.json({ 
-      message: "Profile picture uploaded successfully", 
-      profilePicture: user.profilePicture 
+    return res.status(200).json({
+      message: "Profile picture updated successfully!",
+      profilePicture: updatedUser.profilePicture,
     });
+
   } catch (err) {
     console.error("Upload profile picture error:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -459,28 +460,33 @@ export const deleteProfilePicture = async (req, res) => {
   }
 };
 
-// ─── UPLOAD COVER PICTURE ─────────────────────────
+// ─── UPLOAD COVER PICTURE 
 export const uploadCoverPicture = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const cloudUrl = await uploadToCloudinary(req.file.buffer, "covers");
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided" });
+    }
 
-    const user = await prisma.user.update({
+    const imageUrl = await uploadToCloudinary(req.file.buffer, "profiles");
+
+    const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
-      data: { coverPicture: cloudUrl },
+      data: { coverPicture: imageUrl },
       select: { id: true, coverPicture: true }
     });
 
-    res.json({ 
-      message: "Cover picture uploaded successfully", 
-      coverPicture: user.coverPicture 
+    return res.status(200).json({
+      message: "Cover picture updated successfully!",
+      coverPicture: updatedUser.coverPicture,
     });
+
   } catch (err) {
     console.error("Upload cover picture error:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
