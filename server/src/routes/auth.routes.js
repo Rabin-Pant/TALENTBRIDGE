@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-// Rate limiter setup (keep your existing ones)
+// Rate limiter setup
 const failedAttempts = new Map();
 
 const loginLimiter = async (req, res, next) => {
@@ -83,6 +83,15 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// --- EXTRA LAYER: Contact Form Rate Limiter ---
+const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit each IP to 3 contact submissions per 15 minutes
+  message: { message: "Too many messages sent from this IP. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // File upload configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -114,7 +123,7 @@ router.post("/register", registerLimiter, register);
 router.post("/login", loginLimiter, handleLoginAttempt, login);
 router.post("/check-email", checkEmail);
 router.post("/reset-password-direct", resetPasswordDirect);
-router.post("/contact", submitContact); 
+router.post("/contact", contactLimiter, submitContact); // Applied the contact rate-limiter layer
 
 // ─── PROTECTED ROUTES (Authentication required) ───
 router.put("/change-password", authMiddleware, changePassword);

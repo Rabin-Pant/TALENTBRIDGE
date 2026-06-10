@@ -1,6 +1,12 @@
 import prisma from "../config/db.js";
 
-// ─── GET ALL CONVERSATIONS (Only show not soft-deleted by user) ───
+// --- SECURITY LAYER: Setup DOMPurify for XSS Protection ---
+import createDOMPurify from "dompurify";
+import { JSDOM } from "jsdom";
+const window = new JSDOM("").window;
+const DOMPurify = createDOMPurify(window);
+
+// ─── GET ALL CONVERSATIONS (FIXED & OPTIMIZED) ────────
 export const getConversations = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -8,12 +14,8 @@ export const getConversations = async (req, res) => {
     const conversations = await prisma.conversation.findMany({
       where: {
         AND: [
-          {
-            OR: [{ user1Id: userId }, { user2Id: userId }],
-          },
-          {
-            NOT: { deletedFor: { has: userId } }, // Don't show soft-deleted conversations
-          },
+          { OR: [{ user1Id: userId }, { user2Id: userId }] },
+          { NOT: { deletedFor: { has: userId } } },
         ],
       },
       include: {
@@ -26,28 +28,33 @@ export const getConversations = async (req, res) => {
         messages: {
           take: 1,
           orderBy: { createdAt: "desc" },
-          where: {
-            NOT: { deletedFor: { has: userId } } // Don't show soft-deleted messages
-          }
+          where: { NOT: { deletedFor: { has: userId } } }
         },
       },
       orderBy: { updatedAt: "desc" },
     });
 
-    const formatted = conversations.map((c) => {
-      // Count unread messages (not soft-deleted)
-      const unreadCount = c.messages.filter(m => 
-        m.senderId !== userId && !m.read && !m.deletedFor.includes(userId)
-      ).length;
+    // --- FIX: Run concurrent precise count aggregates to fix the take:1 count bug ---
+    const formatted = await Promise.all(
+      conversations.map(async (c) => {
+        const unreadCount = await prisma.message.count({
+          where: {
+            conversationId: c.id,
+            senderId: { not: userId },
+            read: false,
+            NOT: { deletedFor: { has: userId } }
+          }
+        });
 
-      return {
-        id: c.id,
-        updatedAt: c.updatedAt,
-        otherUser: c.user1Id === userId ? c.user2 : c.user1,
-        lastMessage: c.messages[0] || null,
-        unreadCount: unreadCount,
-      };
-    });
+        return {
+          id: c.id,
+          updatedAt: c.updatedAt,
+          otherUser: c.user1Id === userId ? c.user2 : c.user1,
+          lastMessage: c.messages[0] || null,
+          unreadCount: unreadCount,
+        };
+      })
+    );
 
     res.json({ conversations: formatted });
   } catch (err) {
@@ -62,10 +69,13 @@ export const getOrCreateConversation = async (req, res) => {
     const userId = req.user.id;
     const { targetId } = req.params;
 
-    console.log("getOrCreateConversation called:", { userId, targetId });
-
     if (!targetId) {
       return res.status(400).json({ message: "Target user ID is required" });
+    }
+
+    // --- SECURITY LAYER: Loop Prevention ---
+    if (userId === targetId) {
+      return res.status(400).json({ message: "You cannot initiate a conversation with yourself" });
     }
 
     const targetUser = await prisma.user.findUnique({
@@ -77,7 +87,6 @@ export const getOrCreateConversation = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Find existing conversation (including soft-deleted ones)
     let conversation = await prisma.conversation.findFirst({
       where: {
         OR: [
@@ -91,10 +100,7 @@ export const getOrCreateConversation = async (req, res) => {
       },
     });
 
-    // If conversation exists but was soft-deleted by user, RESTORE it (remove from deletedFor)
     if (conversation && conversation.deletedFor?.includes(userId)) {
-      console.log("Conversation was soft-deleted by user, restoring...");
-      
       conversation = await prisma.conversation.update({
         where: { id: conversation.id },
         data: {
@@ -109,10 +115,7 @@ export const getOrCreateConversation = async (req, res) => {
         },
       });
     }
-    // If no conversation exists at all, create a new one
     else if (!conversation) {
-      console.log("Creating new conversation...");
-      
       conversation = await prisma.conversation.create({
         data: {
           user1Id: userId,
@@ -126,17 +129,15 @@ export const getOrCreateConversation = async (req, res) => {
       });
     }
 
-    // Get unread count (excluding soft-deleted messages)
-    const unreadMessages = await prisma.message.findMany({
+    // --- OPTIMIZATION: Scalable direct count check ---
+    const unreadCount = await prisma.message.count({
       where: {
         conversationId: conversation.id,
         senderId: { not: userId },
         read: false,
-      },
-      select: { deletedFor: true }
+        NOT: { deletedFor: { has: userId } }
+      }
     });
-    
-    const unreadCount = unreadMessages.filter(m => !m.deletedFor.includes(userId)).length;
 
     res.json({
       conversation: {
@@ -149,7 +150,7 @@ export const getOrCreateConversation = async (req, res) => {
     });
   } catch (err) {
     console.error("getOrCreateConversation error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -168,27 +169,23 @@ export const getMessages = async (req, res) => {
     }
 
     const messages = await prisma.message.findMany({
-      where: {
-        conversationId,
-      },
+      where: { conversationId },
       orderBy: { createdAt: "asc" },
-      include: {
-        sender: { select: { id: true, fullName: true } },
-      },
+      include: { sender: { select: { id: true, fullName: true } } },
     });
 
-    // Filter out messages soft-deleted by this user
     const filteredMessages = messages.filter(msg => !msg.deletedFor.includes(userId));
 
-    // Mark messages as read (for messages not soft-deleted)
-    for (const msg of filteredMessages) {
-      if (msg.senderId !== userId && !msg.read) {
-        await prisma.message.update({
-          where: { id: msg.id },
-          data: { read: true },
-        });
-      }
-    }
+    // --- OPTIMIZATION: Replaced iterative loop with single atomic write updateMany ---
+    await prisma.message.updateMany({
+      where: {
+        conversationId,
+        senderId: { not: userId },
+        read: false,
+        NOT: { deletedFor: { has: userId } }
+      },
+      data: { read: true }
+    });
 
     res.json({ messages: filteredMessages });
   } catch (err) {
@@ -201,8 +198,19 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const { content } = req.body;
+    let { content } = req.body;
     const userId = req.user.id;
+
+    // --- SECURITY LAYER: Validation Checks ---
+    if (!content || !content.trim()) {
+      return res.status(400).json({ message: "Message content cannot be empty" });
+    }
+    if (content.length > 10000) {
+      return res.status(400).json({ message: "Message length cannot exceed 10,000 characters" });
+    }
+
+    // --- SECURITY LAYER: Clean text inputs from persistent XSS payload variants ---
+    content = DOMPurify.sanitize(content.trim());
 
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
@@ -235,7 +243,7 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// ─── SOFT DELETE MESSAGE (Only for current user) ───
+// ─── SOFT DELETE MESSAGE ─────────────────────────────
 export const deleteMessageSoft = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -258,17 +266,11 @@ export const deleteMessageSoft = async (req, res) => {
       return res.status(400).json({ message: "Message already deleted" });
     }
 
-    // Soft delete: Add user to deletedFor array
     await prisma.message.update({
       where: { id: messageId },
-      data: {
-        deletedFor: {
-          push: userId
-        }
-      }
+      data: { deletedFor: { push: userId } }
     });
 
-    // Update conversation's updatedAt timestamp
     await prisma.conversation.update({
       where: { id: message.conversationId },
       data: { updatedAt: new Date() }
@@ -281,7 +283,7 @@ export const deleteMessageSoft = async (req, res) => {
   }
 };
 
-// ─── HARD DELETE MESSAGE (Delete for everyone) ───
+// ─── HARD DELETE MESSAGE ─────────────────────────────
 export const deleteMessageHard = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -289,24 +291,20 @@ export const deleteMessageHard = async (req, res) => {
 
     const message = await prisma.message.findUnique({
       where: { id: messageId },
-      include: { conversation: true }
     });
 
     if (!message) {
       return res.status(404).json({ message: "Message not found" });
     }
 
-    // Only sender can hard delete (delete for everyone)
     if (message.senderId !== userId) {
       return res.status(403).json({ message: "You can only delete your own messages for everyone" });
     }
 
-    // Permanently delete the message
     await prisma.message.delete({
       where: { id: messageId }
     });
 
-    // Update conversation's updatedAt timestamp
     await prisma.conversation.update({
       where: { id: message.conversationId },
       data: { updatedAt: new Date() }
@@ -319,7 +317,7 @@ export const deleteMessageHard = async (req, res) => {
   }
 };
 
-// ─── SOFT DELETE CONVERSATION (Only for current user) ───
+// ─── SOFT DELETE CONVERSATION ────────────────────────
 export const deleteConversationSoft = async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -341,14 +339,9 @@ export const deleteConversationSoft = async (req, res) => {
       return res.status(400).json({ message: "Conversation already deleted" });
     }
 
-    // Soft delete: Add user to deletedFor array
     await prisma.conversation.update({
       where: { id: conversationId },
-      data: {
-        deletedFor: {
-          push: userId
-        }
-      }
+      data: { deletedFor: { push: userId } }
     });
 
     res.json({ message: "Conversation deleted from your side" });
@@ -358,38 +351,23 @@ export const deleteConversationSoft = async (req, res) => {
   }
 };
 
-// ─── GET TOTAL UNREAD COUNT FOR SIDEBAR ────────────────
+// ─── GET TOTAL UNREAD COUNT FOR SIDEBAR ──────────────
 export const getTotalUnreadCount = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const conversations = await prisma.conversation.findMany({
+    // --- OPTIMIZATION: Drastically reduced complex N+1 loops to exactly 1 high-speed count query ---
+    const totalUnread = await prisma.message.count({
       where: {
-        AND: [
-          {
-            OR: [{ user1Id: userId }, { user2Id: userId }],
-          },
-          {
-            NOT: { deletedFor: { has: userId } },
-          },
-        ],
-      },
-      select: { id: true },
+        senderId: { not: userId },
+        read: false,
+        NOT: { deletedFor: { has: userId } },
+        conversation: {
+          OR: [{ user1Id: userId }, { user2Id: userId }],
+          NOT: { deletedFor: { has: userId } }
+        }
+      }
     });
-
-    let totalUnread = 0;
-    
-    for (const conv of conversations) {
-      const unreadMessages = await prisma.message.findMany({
-        where: {
-          conversationId: conv.id,
-          senderId: { not: userId },
-          read: false,
-        },
-        select: { deletedFor: true }
-      });
-      totalUnread += unreadMessages.filter(m => !m.deletedFor.includes(userId)).length;
-    }
 
     res.json({ totalUnread });
   } catch (err) {
@@ -404,27 +382,18 @@ export const markConversationRead = async (req, res) => {
     const { conversationId } = req.params;
     const userId = req.user.id;
 
-    const unreadMessages = await prisma.message.findMany({
+    // --- OPTIMIZATION: Removed iterative loop block to utilize optimized native updateMany operations ---
+    const result = await prisma.message.updateMany({
       where: {
         conversationId,
         senderId: { not: userId },
         read: false,
+        NOT: { deletedFor: { has: userId } }
       },
-      select: { id: true, deletedFor: true }
+      data: { read: true }
     });
 
-    let count = 0;
-    for (const msg of unreadMessages) {
-      if (!msg.deletedFor.includes(userId)) {
-        await prisma.message.update({
-          where: { id: msg.id },
-          data: { read: true },
-        });
-        count++;
-      }
-    }
-
-    res.json({ message: `Marked ${count} messages as read` });
+    res.json({ message: `Marked messages as read` });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

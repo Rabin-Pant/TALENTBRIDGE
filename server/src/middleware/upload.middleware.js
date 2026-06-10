@@ -20,10 +20,8 @@ const storage = multer.diskStorage({
       uploadPath = "uploads/posts/";
     } else if (file.fieldname === "companyDocument") {
       uploadPath = "uploads/documents/";
-    } else if (file.fieldname === "profilePicture") {
+    } else if (file.fieldname === "profilePicture" || file.fieldname === "coverPicture") {
       uploadPath = "uploads/profiles/";
-    } else if (file.fieldname === "coverPicture") {
-      uploadPath = "uploads/profiles/";  // ← ADD THIS
     }
     
     ensureDirectoryExists(uploadPath);
@@ -35,40 +33,41 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter
+// File filter - STRICT VALIDATION ONLY
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
-  
-  if (file.fieldname === "profilePicture") {
-    const allowed = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-    if (allowed.includes(ext)) {
+  const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+  const docExts = [".pdf", ".doc", ".docx"];
+  const companyDocExts = [".pdf", ".jpg", ".jpeg", ".png"];
+
+  if (file.fieldname === "profilePicture" || file.fieldname === "coverPicture" || file.fieldname === "image" || file.fieldname === "postImage") {
+    if (imageExts.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error("Only images are allowed for profile picture"));
-    }
-  } else if (file.fieldname === "coverPicture") {  // ← ADD THIS
-    const allowed = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-    if (allowed.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only images are allowed for cover picture"));
+      cb(new Error("Only images are allowed for this field"));
     }
   } else if (file.fieldname === "resume") {
-    const allowed = [".pdf", ".doc", ".docx"];
-    if (allowed.includes(ext)) {
+    if (docExts.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error("Only PDF, DOC, DOCX files are allowed for resume"));
+      cb(new Error("Only PDF, DOC, and DOCX files are allowed for resumes"));
+    }
+  } else if (file.fieldname === "companyDocument") {
+    if (companyDocExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF, JPG, JPEG, and PNG files are allowed for company documents"));
     }
   } else {
-    cb(null, true);
+    // --- CRITICAL FIX: Reject unrecognized or unauthorized field uploads ---
+    cb(new Error("Unauthorized or invalid upload field name"), false);
   }
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
 export default upload;

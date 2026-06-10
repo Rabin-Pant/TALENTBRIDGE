@@ -2,7 +2,13 @@ import prisma from "../config/db.js";
 import { io } from "../../server.js";
 import path from "path";
 
-// ─── GET FEED ────────────────────────────────────────
+// --- SECURITY LAYER: Setup DOMPurify for XSS Protection ---
+import createDOMPurify from "dompurify";
+import { JSDOM } from "jsdom";
+const window = new JSDOM("").window;
+const DOMPurify = createDOMPurify(window);
+
+// ─── GET FEED (OPTIMIZED & SECURED) ───────────────────
 export const getFeed = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -39,7 +45,11 @@ export const getFeed = async (req, res) => {
             profilePicture: true,
           },
         },
-        likes: { select: { userId: true } },
+        // --- OPTIMIZATION FIX: Only fetch the current user's like, NOT all likes ---
+        likes: { 
+          where: { userId: userId },
+          select: { userId: true } 
+        },
         comments: {
           take: 3,
           orderBy: { createdAt: "desc" },
@@ -60,7 +70,7 @@ export const getFeed = async (req, res) => {
 
     const enriched = posts.map((post) => ({
       ...post,
-      isLiked: post.likes.some((l) => l.userId === userId),
+      isLiked: post.likes.length > 0, // High-performance check
       isConnected: connectedUserIds.includes(post.author.id),
       isOwn: post.author.id === userId,
     }));
@@ -75,11 +85,21 @@ export const getFeed = async (req, res) => {
 // ─── CREATE POST ─────────────────────────────────────
 export const createPost = async (req, res) => {
   try {
-    const { content, type } = req.body;
+    let { content, type } = req.body;
     const image = req.file ? req.file.filename : null;
 
     if (!content && !image) {
       return res.status(400).json({ message: "Post content or image is required" });
+    }
+
+    // --- SECURITY LAYER: Validation & Boundary Checks ---
+    if (content && content.length > 5000) {
+      return res.status(400).json({ message: "Post content cannot exceed 5,000 characters" });
+    }
+
+    // --- SECURITY LAYER: Sanitize inputs to prevent stored XSS ---
+    if (content) {
+      content = DOMPurify.sanitize(content.trim());
     }
 
     const post = await prisma.post.create({
@@ -139,12 +159,10 @@ export const toggleLike = async (req, res) => {
 
     if (existing) {
       await prisma.like.delete({ where: { postId_userId: { postId: id, userId } } });
-      await prisma.post.update({ where: { id }, data: { likesCount: { decrement: 1 } } });
       return res.json({ liked: false });
     }
 
     await prisma.like.create({ data: { postId: id, userId } });
-    await prisma.post.update({ where: { id }, data: { likesCount: { increment: 1 } } });
 
     const post = await prisma.post.findUnique({
       where: { id },
@@ -163,7 +181,7 @@ export const toggleLike = async (req, res) => {
           title: "Someone liked your post",
           message: `${liker.fullName} liked your post`,
           type: "LIKE",
-          link: `/home?post=${id}#comments`,  // ← Add post ID to link
+          link: `/home?post=${id}#comments`,
         },
       });
 
@@ -180,11 +198,17 @@ export const toggleLike = async (req, res) => {
 // ─── ADD COMMENT ─────────────────────────────────────
 export const addComment = async (req, res) => {
   try {
-    const { content, parentId } = req.body; 
+    let { content, parentId } = req.body; 
     const { id: postId } = req.params;
     const userId = req.user.id;
 
-    if (!content) return res.status(400).json({ message: "Comment cannot be empty" });
+    if (!content || !content.trim()) return res.status(400).json({ message: "Comment cannot be empty" });
+
+    // --- SECURITY LAYER: Length & XSS Checks ---
+    if (content.length > 1000) {
+      return res.status(400).json({ message: "Comments cannot exceed 1,000 characters" });
+    }
+    content = DOMPurify.sanitize(content.trim());
 
     // 1. Create the comment
     const comment = await prisma.comment.create({
@@ -200,7 +224,6 @@ export const addComment = async (req, res) => {
       const senderName = comment.author.fullName;
 
       if (parentId) {
-        // --- REPLY SCENARIO: Notify the person you are replying to ---
         const parentComment = await prisma.comment.findUnique({
           where: { id: parentId },
           select: { authorId: true }
@@ -219,7 +242,6 @@ export const addComment = async (req, res) => {
           io.to(parentComment.authorId).emit("newNotification", notification);
         }
       } else {
-        // --- POST COMMENT SCENARIO: Notify the post owner ---
         const post = await prisma.post.findUnique({
           where: { id: postId },
           select: { authorId: true }
@@ -248,18 +270,17 @@ export const addComment = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 // ─── GET POST COMMENTS ───────────────────────────────
 export const getComments = async (req, res) => {
   try {
     const comments = await prisma.comment.findMany({
-      
       where: { postId: req.params.id, parentId: null },
       orderBy: { createdAt: "asc" },
       include: {
         author: {
           select: { id: true, fullName: true, currentTitle: true, role: true, profilePicture: true },
         },
-        
         replies: {
           include: {
             author: { select: { id: true, fullName: true, profilePicture: true } }
@@ -288,7 +309,6 @@ export const deleteComment = async (req, res) => {
 
     if (!comment) return res.status(404).json({ message: "Comment not found" });
 
-    // Security: Only the comment author OR the post owner can delete it
     if (comment.authorId !== userId && comment.post.authorId !== userId) {
       return res.status(403).json({ message: "Not authorized to delete this comment" });
     }
@@ -312,14 +332,18 @@ export const getUserPosts = async (req, res) => {
         author: {
           select: { id: true, fullName: true, currentTitle: true, role: true },
         },
+        // --- OPTIMIZATION FIX: Only pull the current user's like check here as well ---
+        likes: {
+          where: { userId: req.user.id },
+          select: { userId: true }
+        },
         _count: { select: { likes: true, comments: true } },
-        likes: { select: { userId: true } },
       },
     });
 
     const enriched = posts.map((p) => ({
       ...p,
-      isLiked: p.likes.some((l) => l.userId === req.user.id),
+      isLiked: p.likes.length > 0,
       isOwn: p.authorId === req.user.id,
     }));
 
