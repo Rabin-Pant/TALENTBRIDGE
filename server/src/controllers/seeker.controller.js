@@ -1,5 +1,6 @@
 import prisma from "../config/db.js";
 import { io } from "../../server.js";
+import { uploadToCloudinary } from "../middleware/upload.middleware.js";
 
 // ─── BROWSE JOBS ─────────────────────────────────────
 export const getJobs = async (req, res) => {
@@ -75,23 +76,19 @@ export const getJobById = async (req, res) => {
   }
 };
 
-// ─── APPLY TO JOB ────────────────────────────────────
+// ─── APPLY TO JOB ─────────────────────────────────────
 export const applyToJob = async (req, res) => {
   try {
-    const { coverLetter } = req.body;
-    const seekerId = req.user.id;
     const jobId = req.params.id;
-
-    console.log("Application started for job:", jobId);
-    console.log("File received:", req.file);
-    console.log("Cover letter:", coverLetter);
+    const seekerId = req.user.id;
+    const { coverLetter } = req.body;
 
     // Handle resume file
     let resumeFileName = null;
     if (req.file) {
-      // Resume uploaded during application
-      resumeFileName = req.file.filename;
-      console.log("New resume uploaded:", resumeFileName);
+      // Stream the raw uploaded file straight to Cloudinary
+      resumeFileName = await uploadToCloudinary(req.file.buffer, "resumes");
+      console.log("New resume uploaded to Cloudinary:", resumeFileName);
     } else {
       // Check if user has existing resume
       const seeker = await prisma.user.findUnique({
@@ -102,12 +99,10 @@ export const applyToJob = async (req, res) => {
       console.log("Using existing resume:", resumeFileName);
     }
 
-    // Check if resume exists
     if (!resumeFileName) {
       return res.status(400).json({ message: "Please upload your resume" });
     }
 
-    // Check job exists
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
@@ -116,62 +111,46 @@ export const applyToJob = async (req, res) => {
       return res.status(400).json({ message: "Job is not active" });
     }
 
-    // Check already applied
     const existing = await prisma.application.findFirst({
-      where: { 
-        jobId: jobId, 
-        applicantId: seekerId 
-      },
+      where: { jobId, applicantId: seekerId },
     });
     
     if (existing) {
       return res.status(400).json({ message: "You already applied to this job" });
     }
 
-    // Create application
     const application = await prisma.application.create({
       data: {
         jobId,
         applicantId: seekerId,
         coverLetter: coverLetter || null,
-        resumeSnapshot: resumeFileName,
+        resumeSnapshot: resumeFileName, // Saves secure live link snapshot
       },
     });
 
-    console.log("Application created:", application.id);
-
-    // Get seeker info for notification
     const seeker = await prisma.user.findUnique({
       where: { id: seekerId },
       select: { fullName: true, email: true }
     });
 
-    // Create notification in database
-    // Create notification in database
-const notification = await prisma.notification.create({
-  data: {
-    recipientId: job.employerId,
-    title: "New Application Received!",
-    message: `${seeker.fullName} applied for ${job.title}`,
-    type: "APPLICATION",
-   link: `/employer/applicants/${application.id}`,
-  },
-});
+    const notification = await prisma.notification.create({
+      data: {
+        recipientId: job.employerId,
+        title: "New Application Received!",
+        message: `${seeker.fullName} applied for ${job.title}`,
+        type: "APPLICATION",
+        link: `/employer/applicants/${application.id}`,
+      },
+    });
 
-    console.log("Notification created:", notification.id);
-
-    // Emit real-time notification via socket
     if (io) {
       io.to(job.employerId).emit("newNotification", notification);
     }
 
-    res.status(201).json({ 
-      message: "Application submitted successfully", 
-      application 
-    });
+    res.status(201).json({ message: "Application submitted successfully", application });
   } catch (err) {
-    console.error("Apply to job error:", err);
-    res.status(500).json({ message: "Server error: " + err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -295,12 +274,15 @@ export const uploadResume = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
+    // Streams to Cloudinary
+    const cloudUrl = await uploadToCloudinary(req.file.buffer, "resumes");
+
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { resumeFileName: req.file.filename },
+      data: { resumeFileName: cloudUrl },
     });
 
-    res.json({ message: "Resume uploaded successfully", filename: req.file.filename });
+    res.json({ message: "Resume uploaded successfully", filename: cloudUrl });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -443,12 +425,11 @@ export const uploadProfilePicture = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // Store the relative path
-    const profilePicturePath = `profiles/${req.file.filename}`;
+    const cloudUrl = await uploadToCloudinary(req.file.buffer, "profiles");
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { profilePicture: profilePicturePath },
+      data: { profilePicture: cloudUrl },
       select: { id: true, profilePicture: true }
     });
 
@@ -485,11 +466,11 @@ export const uploadCoverPicture = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const coverPicturePath = `profiles/${req.file.filename}`;
+    const cloudUrl = await uploadToCloudinary(req.file.buffer, "covers");
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { coverPicture: coverPicturePath },
+      data: { coverPicture: cloudUrl },
       select: { id: true, coverPicture: true }
     });
 

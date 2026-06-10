@@ -1,5 +1,6 @@
 import prisma from "../config/db.js";
 import { io } from "../../server.js";
+import { uploadToCloudinary } from "../middleware/upload.middleware.js";
 
 // ─── GET ALL MY JOBS ─────────────────────────────────
 export const getMyJobs = async (req, res) => {
@@ -392,11 +393,11 @@ export const uploadProfilePicture = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const profilePicturePath = `profiles/${req.file.filename}`;
+    const cloudUrl = await uploadToCloudinary(req.file.buffer, "profiles");
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { profilePicture: profilePicturePath },
+      data: { profilePicture: cloudUrl },
       select: { id: true, profilePicture: true }
     });
 
@@ -430,11 +431,11 @@ export const uploadCoverPicture = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const coverPicturePath = `profiles/${req.file.filename}`;
+    const cloudUrl = await uploadToCloudinary(req.file.buffer, "covers");
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { coverPicture: coverPicturePath },
+      data: { coverPicture: cloudUrl },
       select: { id: true, coverPicture: true }
     });
 
