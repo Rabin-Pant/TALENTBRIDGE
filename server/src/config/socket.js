@@ -1,11 +1,22 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import prisma from "./db.js"; // Fixes crash when saving messages to the database
 
 let io;
+const onlineUsers = new Map();
 
 export const initSocket = (httpServer) => {
+  // Allow connections from both local development and your Vercel production site
+  const allowedOrigins = ["http://localhost:5173", "https://talentbridge-five.vercel.app"];
+  if (process.env.CLIENT_URL && !allowedOrigins.includes(process.env.CLIENT_URL)) {
+    allowedOrigins.push(process.env.CLIENT_URL);
+  }
+
   io = new Server(httpServer, {
-    cors: { origin: "http://localhost:5173", credentials: true },
+    cors: { 
+      origin: allowedOrigins, 
+      credentials: true 
+    },
   });
 
   io.use((socket, next) => {
@@ -79,5 +90,3 @@ export const getIo = () => {
   }
   return io;
 };
-
-const onlineUsers = new Map();
