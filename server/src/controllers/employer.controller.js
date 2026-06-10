@@ -1,6 +1,5 @@
 import prisma from "../config/db.js";
 import { io } from "../../server.js";
-import { uploadToCloudinary } from "../middleware/upload.middleware.js";
 
 // ─── GET ALL MY JOBS ─────────────────────────────────
 export const getMyJobs = async (req, res) => {
@@ -42,14 +41,14 @@ export const createJob = async (req, res) => {
         industry,
         salaryMin: salaryMin ? parseInt(salaryMin) : null,
         salaryMax: salaryMax ? parseInt(salaryMax) : null,
-        requirements: typeof requirements === "string" ? requirements.split("\n") : requirements,
-        benefits: typeof benefits === "string" ? benefits.split("\n") : benefits,
-        skills: typeof skills === "string" ? skills.split(",").map(s => s.trim()) : skills,
+        requirements: requirements || [],
+        benefits: benefits || [],
+        skills: skills || [],
         employerId: req.user.id,
       },
     });
 
-    res.status(201).json({ message: "Job created successfully", job });
+    res.status(201).json({ message: "Job posted successfully", job });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -59,40 +58,30 @@ export const createJob = async (req, res) => {
 // ─── UPDATE JOB ──────────────────────────────────────
 export const updateJob = async (req, res) => {
   try {
-    const { id } = req.params;
+    const job = await prisma.job.findUnique({ where: { id: req.params.id } });
+
+    if (!job || job.employerId !== req.user.id) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
     const {
       title, description, location, jobType,
       experienceLevel, industry, salaryMin, salaryMax,
       requirements, benefits, skills, status,
     } = req.body;
 
-    const job = await prisma.job.findFirst({
-      where: { id, employerId: req.user.id },
-    });
-
-    if (!job) {
-      return res.status(404).json({ message: "Job not found or unauthorized" });
-    }
-
-    const updatedJob = await prisma.job.update({
-      where: { id },
+    const updated = await prisma.job.update({
+      where: { id: req.params.id },
       data: {
-        title,
-        description,
-        location,
-        jobType,
-        experienceLevel,
-        industry,
-        status,
+        title, description, location, jobType,
+        experienceLevel, industry,
         salaryMin: salaryMin ? parseInt(salaryMin) : null,
         salaryMax: salaryMax ? parseInt(salaryMax) : null,
-        requirements: typeof requirements === "string" ? requirements.split("\n") : requirements,
-        benefits: typeof benefits === "string" ? benefits.split("\n") : benefits,
-        skills: typeof skills === "string" ? skills.split(",").map(s => s.trim()) : skills,
+        requirements, benefits, skills, status,
       },
     });
 
-    res.json({ message: "Job updated successfully", job: updatedJob });
+    res.json({ message: "Job updated successfully", job: updated });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -102,17 +91,13 @@ export const updateJob = async (req, res) => {
 // ─── DELETE JOB ──────────────────────────────────────
 export const deleteJob = async (req, res) => {
   try {
-    const { id } = req.params;
+    const job = await prisma.job.findUnique({ where: { id: req.params.id } });
 
-    const job = await prisma.job.findFirst({
-      where: { id, employerId: req.user.id },
-    });
-
-    if (!job) {
-      return res.status(404).json({ message: "Job not found or unauthorized" });
+    if (!job || job.employerId !== req.user.id) {
+      return res.status(404).json({ message: "Job not found" });
     }
 
-    await prisma.job.delete({ where: { id } });
+    await prisma.job.delete({ where: { id: req.params.id } });
 
     res.json({ message: "Job deleted successfully" });
   } catch (err) {
@@ -121,27 +106,30 @@ export const deleteJob = async (req, res) => {
   }
 };
 
-// ─── GET JOB APPLICANTS ──────────────────────────────
+// ─── GET ALL APPLICANTS ──────────────────────────────
 export const getApplications = async (req, res) => {
   try {
     const applications = await prisma.application.findMany({
-      where: {
-        job: { employerId: req.user.id },
-      },
+      where: { job: { employerId: req.user.id } },
       orderBy: { appliedAt: "desc" },
       include: {
-        job: { select: { title: true } },
+        job: { select: { id: true, title: true, company: true } },
         applicant: {
           select: {
             id: true,
             fullName: true,
             email: true,
-            resumeFileName: true,
+            currentTitle: true,
+            location: true,
+            skills: true,
+            experienceLevel: true,
+            profilePicture: true,
           },
         },
       },
     });
 
+    console.log(`Found ${applications.length} applications for employer ${req.user.id}`);
     res.json({ applications });
   } catch (err) {
     console.error(err);
@@ -149,38 +137,32 @@ export const getApplications = async (req, res) => {
   }
 };
 
-// ─── GET APPLICANT DETAIL BY ID ─────────────────────
+// ─── GET SINGLE APPLICATION ──────────────────────────
 export const getApplicationById = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const application = await prisma.application.findFirst({
-      where: {
-        id,
-        job: { employerId: req.user.id },
-      },
+    const application = await prisma.application.findUnique({
+      where: { id: req.params.id },
       include: {
-        job: { select: { title: true, id: true } },
+        job: { select: { title: true, employerId: true } },
         applicant: {
           select: {
-            id: true,
             fullName: true,
             email: true,
-            phone: true,
-            bio: true,
             currentTitle: true,
+            bio: true,
             location: true,
+            phone: true,
             skills: true,
+            experienceLevel: true,
+            resumeFileName: true,
             education: true,
             workExperience: true,
-            resumeFileName: true,
-            profilePicture: true,
           },
         },
       },
     });
 
-    if (!application) {
+    if (!application || application.job.employerId !== req.user.id) {
       return res.status(404).json({ message: "Application not found" });
     }
 
@@ -191,50 +173,40 @@ export const getApplicationById = async (req, res) => {
   }
 };
 
-// ─── UPDATE APPLICATION STATUS ────────────────────────
+// ─── UPDATE APPLICATION STATUS ───────────────────────
 export const updateApplicationStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status, feedback } = req.body;
+    const { status, employerNote } = req.body;
 
-    if (!["PENDING", "REVIEWING", "SHORTLISTED", "REJECTED", "ACCEPTED"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status value" });
-    }
-
-    const application = await prisma.application.findFirst({
-      where: {
-        id,
-        job: { employerId: req.user.id },
-      },
-      include: {
-        job: { select: { title: true } },
-      },
+    const application = await prisma.application.findUnique({
+      where: { id: req.params.id },
+      include: { job: true },
     });
 
-    if (!application) {
+    if (!application || application.job.employerId !== req.user.id) {
       return res.status(404).json({ message: "Application not found" });
     }
 
     const updated = await prisma.application.update({
-      where: { id },
-      data: { status, feedback: feedback || null },
+      where: { id: req.params.id },
+      data: { status, employerNote },
     });
 
+    // Create notification in database
     const notification = await prisma.notification.create({
       data: {
         recipientId: application.applicantId,
-        title: `Application Status Update: ${status}`,
-        message: `Your application status for "${application.job.title}" has been updated to ${status}.`,
-        type: "APPLICATION",
-        link: "/seeker/applications",
+        title: "Application Status Updated",
+        message: `Your application for ${application.job.title} is now ${status}`,
+        type: "STATUS_UPDATE",
+        link: `/seeker/applications`,
       },
     });
 
-    if (io) {
-      io.to(application.applicantId).emit("newNotification", notification);
-    }
+    // Emit real-time notification via socket
+    io.to(application.applicantId).emit("newNotification", notification);
 
-    res.json({ message: "Application status updated successfully", application: updated });
+    res.json({ message: "Status updated", application: updated });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -244,21 +216,23 @@ export const updateApplicationStatus = async (req, res) => {
 // ─── GET PROFILE ─────────────────────────────────────
 export const getProfile = async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
+   const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
         id: true,
         email: true,
         fullName: true,
+        role: true,
         companyName: true,
         companyWebsite: true,
-        companyDescription: true,
-        industry: true,
         companySize: true,
-        location: true,
-        phone: true,
+        industry: true,
+        companyDescription: true,
+        companyPhone: true,
         profilePicture: true,
         coverPicture: true,
+        companyAddress: true,
+        companyRegNumber: true,
       },
     });
 
@@ -272,27 +246,32 @@ export const getProfile = async (req, res) => {
 // ─── UPDATE PROFILE ──────────────────────────────────
 export const updateProfile = async (req, res) => {
   try {
-    const {
-      fullName, companyName, companyWebsite,
-      companyDescription, industry, companySize, location, phone,
-    } = req.body;
+    const { fullName, companyName, companyWebsite, companySize, industry, companyDescription } =
+      req.body;
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: {
-        fullName, companyName, companyWebsite,
-        companyDescription, industry, companySize, location, phone,
+      data: { fullName, companyName, companyWebsite, companySize, industry, companyDescription },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        companyName: true,
+        companyWebsite: true,
+        companySize: true,
+        industry: true,
+        companyDescription: true,
       },
     });
 
-    res.json({ message: "Profile updated successfully", user });
+    res.json({ message: "Profile updated", user });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// ─── GET NOTIFICATIONS ───────────────────────────────
+// ─── NOTIFICATIONS ───────────────────────────────────
 export const getNotifications = async (req, res) => {
   try {
     const notifications = await prisma.notification.findMany({
@@ -300,7 +279,7 @@ export const getNotifications = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+    const unreadCount = notifications.filter((n) => !n.read).length;
 
     res.json({ notifications, unreadCount });
   } catch (err) {
@@ -309,14 +288,14 @@ export const getNotifications = async (req, res) => {
   }
 };
 
-// ─── MARK ALL NOTIFICATIONS READ ─────────────────────
+// ─── MARK NOTIFICATIONS AS READ ──────────────────────
 export const markNotificationsRead = async (req, res) => {
   try {
     await prisma.notification.updateMany({
       where: { recipientId: req.user.id, read: false },
       data: { read: true },
     });
-
+    
     res.json({ message: "Notifications marked as read" });
   } catch (err) {
     console.error(err);
@@ -409,30 +388,22 @@ export const markAllNotificationsRead = async (req, res) => {
 // ─── UPLOAD PROFILE PICTURE ─────────────────────────
 export const uploadProfilePicture = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Unauthorized. Please log in again." });
-    }
-
     if (!req.file) {
-      return res.status(400).json({ message: "No image file provided" });
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const imageUrl = await uploadToCloudinary(req.file.buffer, "profiles");
+    const profilePicturePath = `profiles/${req.file.filename}`;
 
-    const updatedUser = await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { profilePicture: imageUrl },
+      data: { profilePicture: profilePicturePath },
       select: { id: true, profilePicture: true }
     });
 
-    return res.status(200).json({
-      message: "Profile picture updated successfully!",
-      profilePicture: updatedUser.profilePicture,
-    });
-
+    res.json({ message: "Profile picture uploaded successfully", profilePicture: user.profilePicture });
   } catch (err) {
-    console.error("Upload profile picture error:", err);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -455,30 +426,22 @@ export const deleteProfilePicture = async (req, res) => {
 // ─── UPLOAD COVER PICTURE ─────────────────────────
 export const uploadCoverPicture = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
     if (!req.file) {
-      return res.status(400).json({ message: "No image file provided" });
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const imageUrl = await uploadToCloudinary(req.file.buffer, "profiles");
+    const coverPicturePath = `profiles/${req.file.filename}`;
 
-    const updatedUser = await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { coverPicture: imageUrl },
+      data: { coverPicture: coverPicturePath },
       select: { id: true, coverPicture: true }
     });
 
-    return res.status(200).json({
-      message: "Cover picture updated successfully!",
-      coverPicture: updatedUser.coverPicture,
-    });
-
+    res.json({ message: "Cover picture uploaded successfully", coverPicture: user.coverPicture });
   } catch (err) {
-    console.error("Upload cover picture error:", err);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 

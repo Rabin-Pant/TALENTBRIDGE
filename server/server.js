@@ -40,14 +40,9 @@ if (process.env.NODE_ENV === "production") {
 // Compression for faster response
 app.use(compression());
 
-// CORS Configuration supporting both Local and Vercel Production
-const allowedOrigins = ["http://localhost:5173", "https://talentbridge-five.vercel.app"];
-if (process.env.CLIENT_URL && !allowedOrigins.includes(process.env.CLIENT_URL)) {
-  allowedOrigins.push(process.env.CLIENT_URL);
-}
-
+// CORS
 app.use(cors({ 
-  origin: allowedOrigins, 
+  origin: process.env.CLIENT_URL || "http://localhost:5173", 
   credentials: true 
 }));
 

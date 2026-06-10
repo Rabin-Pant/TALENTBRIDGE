@@ -1,6 +1,7 @@
 import prisma from "../config/db.js";
 import { io } from "../../server.js";
-import { uploadToCloudinary } from "../middleware/upload.middleware.js";
+import fs from "fs";
+import path from "path";
 
 // ─── BROWSE JOBS ─────────────────────────────────────
 export const getJobs = async (req, res) => {
@@ -76,19 +77,25 @@ export const getJobById = async (req, res) => {
   }
 };
 
-// ─── APPLY TO JOB ─────────────────────────────────────
+// ─── APPLY TO JOB ────────────────────────────────────
 export const applyToJob = async (req, res) => {
   try {
-    const jobId = req.params.id;
-    const seekerId = req.user.id;
     const { coverLetter } = req.body;
+    const seekerId = req.user.id;
+    const jobId = req.params.id;
+
+    console.log("Application started for job:", jobId);
+    console.log("File received:", req.file);
+    console.log("Cover letter:", coverLetter);
 
     // Handle resume file
     let resumeFileName = null;
     if (req.file) {
-      resumeFileName = await uploadToCloudinary(req.file.buffer, "resumes");
-      console.log("New resume uploaded to Cloudinary:", resumeFileName);
+      // Resume uploaded during application
+      resumeFileName = req.file.filename;
+      console.log("New resume uploaded:", resumeFileName);
     } else {
+      // Check if user has existing resume
       const seeker = await prisma.user.findUnique({
         where: { id: seekerId },
         select: { resumeFileName: true }
@@ -97,10 +104,12 @@ export const applyToJob = async (req, res) => {
       console.log("Using existing resume:", resumeFileName);
     }
 
+    // Check if resume exists
     if (!resumeFileName) {
       return res.status(400).json({ message: "Please upload your resume" });
     }
 
+    // Check job exists
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
@@ -109,14 +118,19 @@ export const applyToJob = async (req, res) => {
       return res.status(400).json({ message: "Job is not active" });
     }
 
+    // Check already applied
     const existing = await prisma.application.findFirst({
-      where: { jobId, applicantId: seekerId },
+      where: { 
+        jobId: jobId, 
+        applicantId: seekerId 
+      },
     });
     
     if (existing) {
       return res.status(400).json({ message: "You already applied to this job" });
     }
 
+    // Create application
     const application = await prisma.application.create({
       data: {
         jobId,
@@ -126,29 +140,40 @@ export const applyToJob = async (req, res) => {
       },
     });
 
+    console.log("Application created:", application.id);
+
+    // Get seeker info for notification
     const seeker = await prisma.user.findUnique({
       where: { id: seekerId },
       select: { fullName: true, email: true }
     });
 
-    const notification = await prisma.notification.create({
-      data: {
-        recipientId: job.employerId,
-        title: "New Application Received!",
-        message: `${seeker.fullName} applied for ${job.title}`,
-        type: "APPLICATION",
-        link: `/employer/applicants/${application.id}`,
-      },
-    });
+    // Create notification in database
+    // Create notification in database
+const notification = await prisma.notification.create({
+  data: {
+    recipientId: job.employerId,
+    title: "New Application Received!",
+    message: `${seeker.fullName} applied for ${job.title}`,
+    type: "APPLICATION",
+   link: `/employer/applicants/${application.id}`,
+  },
+});
 
+    console.log("Notification created:", notification.id);
+
+    // Emit real-time notification via socket
     if (io) {
       io.to(job.employerId).emit("newNotification", notification);
     }
 
-    res.status(201).json({ message: "Application submitted successfully", application });
+    res.status(201).json({ 
+      message: "Application submitted successfully", 
+      application 
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Apply to job error:", err);
+    res.status(500).json({ message: "Server error: " + err.message });
   }
 };
 
@@ -221,6 +246,7 @@ export const updateProfile = async (req, res) => {
       workExperience,
     } = req.body;
 
+    // Build update data carefully
     const updateData = {};
 
     if (fullName !== undefined)       updateData.fullName       = fullName;
@@ -271,14 +297,12 @@ export const uploadResume = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const cloudUrl = await uploadToCloudinary(req.file.buffer, "resumes");
-
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { resumeFileName: cloudUrl },
+      data: { resumeFileName: req.file.filename },
     });
 
-    res.json({ message: "Resume uploaded successfully", filename: cloudUrl });
+    res.json({ message: "Resume uploaded successfully", filename: req.file.filename });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -414,22 +438,23 @@ export const markAllNotificationsRead = async (req, res) => {
   }
 };
 
-// ─── UPLOAD PROFILE PICTURE (Fixed name and target model match router) ───
+// ─── UPLOAD PROFILE PICTURE ───────────────────────────
 export const uploadProfilePicture = async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Unauthorized. Please log in again." });
+      return res.status(401).json({ message: "Unauthorized" });
     }
-
     if (!req.file) {
       return res.status(400).json({ message: "No image file provided" });
     }
 
-    const imageUrl = await uploadToCloudinary(req.file.buffer, "profiles");
+    // Multer diskStorage has already automatically saved the file into "uploads/profiles/"
+    // We save the relative sub-path so your frontend URL matches perfectly
+    const profilePicturePath = `profiles/${req.file.filename}`;
 
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
-      data: { profilePicture: imageUrl },
+      data: { profilePicture: profilePicturePath },
       select: { id: true, profilePicture: true }
     });
 
@@ -437,9 +462,37 @@ export const uploadProfilePicture = async (req, res) => {
       message: "Profile picture updated successfully!",
       profilePicture: updatedUser.profilePicture,
     });
-
   } catch (err) {
-    console.error("Upload profile picture error:", err);
+    console.error("Profile picture upload error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// ─── UPLOAD COVER PICTURE ─────────────────────────────
+export const uploadCoverPicture = async (req, res) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided" });
+    }
+
+    // Multer diskStorage has already automatically saved the file into "uploads/profiles/"
+    const coverPicturePath = `profiles/${req.file.filename}`;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { coverPicture: coverPicturePath },
+      select: { id: true, coverPicture: true }
+    });
+
+    return res.status(200).json({
+      message: "Cover picture updated successfully!",
+      coverPicture: updatedUser.coverPicture,
+    });
+  } catch (err) {
+    console.error("Cover picture upload error:", err);
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
@@ -457,36 +510,6 @@ export const deleteProfilePicture = async (req, res) => {
   } catch (err) {
     console.error("Delete profile picture error:", err);
     res.status(500).json({ message: "Server error" });
-  }
-};
-
-// ─── UPLOAD COVER PICTURE 
-export const uploadCoverPicture = async (req, res) => {
-  try {
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ message: "No image file provided" });
-    }
-
-    const imageUrl = await uploadToCloudinary(req.file.buffer, "profiles");
-
-    const updatedUser = await prisma.user.update({
-      where: { id: req.user.id },
-      data: { coverPicture: imageUrl },
-      select: { id: true, coverPicture: true }
-    });
-
-    return res.status(200).json({
-      message: "Cover picture updated successfully!",
-      coverPicture: updatedUser.coverPicture,
-    });
-
-  } catch (err) {
-    console.error("Upload cover picture error:", err);
-    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 

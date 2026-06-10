@@ -302,16 +302,10 @@ const handleCoverPictureUpload = async (e) => {
         <X size={24} />
       </button>
       <img 
-  src={
-    profileData?.profilePicture 
-      ? (profileData.profilePicture.startsWith('http') 
-          ? profileData.profilePicture // Cloudinary URL
-          : `/uploads/${profileData.profilePicture}`) // Old local path
-      : "/default-avatar.png" // Fallback
-  } 
-  alt={profileData?.fullName || "Profile"}
-  className="max-w-full max-h-[90vh] object-contain rounded-lg"
-/>
+        src={profilePictureUrl} 
+        alt={profileData?.fullName}
+        className="max-w-full max-h-[90vh] object-contain rounded-lg"
+      />
     </div>
   </div>
 )}
@@ -327,16 +321,10 @@ const handleCoverPictureUpload = async (e) => {
         <X size={24} />
       </button>
       <img 
-  src={
-    profileData?.coverPicture 
-      ? (profileData.coverPicture.startsWith('http') 
-          ? profileData.coverPicture // Cloudinary URL
-          : `/uploads/${profileData.coverPicture}`) // Fallback to local
-      : "/default-cover.jpg" // Default fallback image
-  } 
-  alt="Cover"
-  className="max-w-full max-h-[90vh] object-contain rounded-lg"
-/>
+        src={`http://localhost:5000/uploads/${profileData.coverPicture}`} 
+        alt="Cover"
+        className="max-w-full max-h-[90vh] object-contain rounded-lg"
+      />
     </div>
   </div>
 )}
