@@ -247,6 +247,7 @@ export const getMe = async (req, res) => {
 };
 
 // ─── CHANGE PASSWORD (In-app, requires current password) ───
+// ─── CHANGE PASSWORD (In-app, requires current password) ───
 export const changePassword = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -268,6 +269,7 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ message: "New password cannot be the same as current password" });
     }
 
+    // 1. Fetch user including rate-limiting tracking fields
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -276,20 +278,53 @@ export const changePassword = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Current password is incorrect" });
+    // 2. Check if the user is currently locked out
+    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+      const remainingTime = Math.ceil((user.lockoutUntil - new Date()) / 1000 / 60);
+      return res.status(423).json({
+        message: `Too many incorrect attempts. This feature is locked. Try again in ${remainingTime} minutes.`,
+      });
     }
 
+    // 3. Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isMatch) {
+      const updatedAttempts = user.failedPasswordAttempts + 1;
+      let lockoutUntil = null;
+      let message = `Current password is incorrect. You have ${10 - updatedAttempts} attempts remaining.`;
+
+      // Lock out on 10th failure
+      if (updatedAttempts >= 10) {
+        lockoutUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 mins from now
+        message = "Too many incorrect attempts. Your account has been locked out of this feature for 15 minutes.";
+      }
+
+      // Save metrics to DB
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          failedPasswordAttempts: updatedAttempts >= 10 ? 0 : updatedAttempts,
+          lockoutUntil: lockoutUntil || user.lockoutUntil,
+        },
+      });
+
+      return res.status(400).json({ message });
+    }
+
+    // 4. Hash new password and reset rate limits on success
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await prisma.user.update({
       where: { id: userId },
-      data: { password: hashedPassword },
+      data: { 
+        password: hashedPassword,
+        failedPasswordAttempts: 0, // Reset attempts counter
+        lockoutUntil: null         // Remove lockout
+      },
     });
 
     console.log(`[AUDIT] User ${user.email} changed their password`);
-
     res.json({ message: "Password changed successfully!" });
   } catch (err) {
     console.error("Change password error:", err);
@@ -314,10 +349,8 @@ export const checkEmail = async (req, res) => {
 // ─── DIRECT RESET PASSWORD  ─────────────────────────────
 export const resetPasswordDirect = async (req, res) => {
   try {
-    // 1. Accept currentPassword from the frontend request body
     const { email, currentPassword, newPassword } = req.body;
 
-    // 2. Enforce all fields are required
     if (!email || !currentPassword || !newPassword) {
       return res.status(400).json({ message: "All fields (Email, Current Password, and New Password) are required" });
     }
@@ -326,7 +359,7 @@ export const resetPasswordDirect = async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    // 3. Find user by email
+    // 1. Find user by email
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
@@ -335,23 +368,52 @@ export const resetPasswordDirect = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 4. CRITICAL FIX: Verify current password matches what's stored in the database
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Current password is incorrect" });
+    // 2. Check for active lockout
+    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+      const remainingTime = Math.ceil((user.lockoutUntil - new Date()) / 1000 / 60);
+      return res.status(423).json({
+        message: `Too many incorrect attempts. This feature is locked. Try again in ${remainingTime} minutes.`,
+      });
     }
 
-    // 5. Prevent user from picking the same password
+    // 3. Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isMatch) {
+      const updatedAttempts = user.failedPasswordAttempts + 1;
+      let lockoutUntil = null;
+      let message = `Current password is incorrect. You have ${10 - updatedAttempts} attempts remaining.`;
+
+      if (updatedAttempts >= 10) {
+        lockoutUntil = new Date(Date.now() + 15 * 60 * 1000);
+        message = "Too many incorrect attempts. Your account has been locked out of this feature for 15 minutes.";
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedPasswordAttempts: updatedAttempts >= 10 ? 0 : updatedAttempts,
+          lockoutUntil: lockoutUntil || user.lockoutUntil,
+        },
+      });
+
+      return res.status(401).json({ message });
+    }
+
     if (currentPassword === newPassword) {
       return res.status(400).json({ message: "New password cannot be identical to your current password" });
     }
 
-    // 6. Hash new password and save safely
+    // 4. Hash new password and clear metrics
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedPassword },
+      data: { 
+        password: hashedPassword,
+        failedPasswordAttempts: 0,
+        lockoutUntil: null
+      },
     });
 
     return res.json({ message: "Password reset successfully! Redirecting..." });
@@ -409,5 +471,82 @@ export const submitContact = async (req, res) => {
   } catch (err) {
     console.error("Contact form error:", err);
     res.status(500).json({ message: "Failed to send message. Please try again." });
+  }
+};
+
+export const updatePassword = async (req, res) => {
+  try {
+    const userId = req.user.id; // Obtained from authMiddleware
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Both current and new passwords are required" });
+    }
+
+    // 1. Fetch user tracking state
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 2. Check if the user is currently locked out
+    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+      const remainingTime = Math.ceil((user.lockoutUntil - new Date()) / 1000 / 60);
+      return res.status(423).json({
+        message: `Too many incorrect attempts. This action is locked. Please try again in ${remainingTime} minutes.`,
+      });
+    }
+
+    // 3. Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isMatch) {
+      const updatedAttempts = user.failedPasswordAttempts + 1;
+      let lockoutUntil = null;
+      let message = `Incorrect current password. You have ${10 - updatedAttempts} attempts remaining.`;
+
+      // Trigger 15-minute lockout on the 10th failure
+      if (updatedAttempts >= 10) {
+        lockoutUntil = new Date(Date.now() + 15 * 60 * 1000); // Current time + 15 mins
+        message = "Too many incorrect attempts. Your account has been locked out of this feature for 15 minutes.";
+      }
+
+      // Save failure metrics to the database
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          failedPasswordAttempts: updatedAttempts >= 10 ? 0 : updatedAttempts, // Reset count if triggering lockout loop
+          lockoutUntil: lockoutUntil || user.lockoutUntil,
+        },
+      });
+
+      return res.status(400).json({ message });
+    }
+
+    // 4. If password matches, validate and hash new password
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters long" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    // 5. Update user password and clear all rate-limiting trackers
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedNewPassword,
+        failedPasswordAttempts: 0, // Reset counter
+        lockoutUntil: null,        // Clear lockout duration
+      },
+    });
+
+    return res.json({ message: "Password updated successfully!" });
+  } catch (err) {
+    console.error("updatePassword error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };

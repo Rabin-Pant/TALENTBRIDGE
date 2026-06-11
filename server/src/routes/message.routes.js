@@ -1,12 +1,20 @@
 import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
 import {
-  getConversations, getOrCreateConversation,
-  getMessages, sendMessage, getTotalUnreadCount, 
-  markConversationRead, deleteMessageSoft, deleteMessageHard, deleteConversationSoft,
+  getConversations,
+  getOrCreateConversation,
+  getMessages,
+  sendMessage,
+  getTotalUnreadCount,
+  markConversationRead,
+  deleteMessageSoft,
+  deleteMessageHard,
+  deleteConversationSoft,
+  toggleReaction, 
 } from "../controllers/message.controller.js";
 
 const router = express.Router();
+
 router.use(authMiddleware);
 
 router.get("/conversations",                         getConversations);
@@ -18,5 +26,7 @@ router.post("/:conversationId",                      sendMessage);
 router.delete("/message/:messageId/soft",            deleteMessageSoft);   // Delete for me only
 router.delete("/message/:messageId/hard",            deleteMessageHard);   // Delete for everyone
 router.delete("/conversation/:conversationId/soft",  deleteConversationSoft); // Delete conversation for me only
+
+router.post("/message/:messageId/react",             toggleReaction);
 
 export default router;

@@ -30,11 +30,11 @@ enum ExperienceLevel {
 }
 
 enum CompanySize {
-  STARTUP      // 1–10
-  SMALL        // 11–50
-  MEDIUM       // 51–200
-  LARGE        // 201–1000
-  ENTERPRISE   // 1000+
+  STARTUP // 1–10
+  SMALL // 11–50
+  MEDIUM // 51–200
+  LARGE // 201–1000
+  ENTERPRISE // 1000+
 }
 
 enum JobType {
@@ -65,8 +65,8 @@ enum NotificationType {
   STATUS_UPDATE
   JOB_MATCH
   SYSTEM
-  LIKE        
-  COMMENT     
+  LIKE
+  COMMENT
 }
 
 // ─────────────────────────────────────────
@@ -74,17 +74,20 @@ enum NotificationType {
 // ─────────────────────────────────────────
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  fullName  String
-  role      Role     @default(SEEKER)
-  active    Boolean  @default(true)
-  approved    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  lastLogin DateTime?
-  profilePicture String? 
-  coverPicture   String?
+  id                     String            @id @default(uuid())
+  email                  String            @unique
+  password               String
+  fullName               String
+  role                   Role              @default(SEEKER)
+  active                 Boolean           @default(true)
+  approved               Boolean           @default(false)
+  createdAt              DateTime          @default(now())
+  lastLogin              DateTime?
+  profilePicture         String?
+  coverPicture           String?
+  failedPasswordAttempts Int               @default(0)
+  lockoutUntil           DateTime?
+  reactions              MessageReaction[]
 
   // Seeker-only fields
   currentTitle    String?
@@ -97,7 +100,7 @@ model User {
   education       Json?
   workExperience  Json?
 
- // Employer-only fields
+  // Employer-only fields
   companyName        String?
   companyWebsite     String?
   companySize        CompanySize?
@@ -108,20 +111,20 @@ model User {
   companyRegNumber   String?
   companyDocument    String?
 
- // Relations
-  postedJobs           Job[]            @relation("EmployerJobs")
-  applications         Application[]    @relation("SeekerApplications")
-  notifications        Notification[]   @relation("UserNotifications")
+  // Relations
+  postedJobs    Job[]          @relation("EmployerJobs")
+  applications  Application[]  @relation("SeekerApplications")
+  notifications Notification[] @relation("UserNotifications")
 
   // Social relations
-  posts                Post[]           @relation("UserPosts")
-  likes                Like[]           @relation("UserLikes")
-  comments             Comment[]        @relation("UserComments")
-  sentConnections      Connection[]     @relation("SentConnections")
-  receivedConnections  Connection[]     @relation("ReceivedConnections")
-  conversationsAsUser1 Conversation[]   @relation("ConversationUser1")
-  conversationsAsUser2 Conversation[]   @relation("ConversationUser2")
-  sentMessages         Message[]        @relation("SentMessages")  
+  posts                Post[]         @relation("UserPosts")
+  likes                Like[]         @relation("UserLikes")
+  comments             Comment[]      @relation("UserComments")
+  sentConnections      Connection[]   @relation("SentConnections")
+  receivedConnections  Connection[]   @relation("ReceivedConnections")
+  conversationsAsUser1 Conversation[] @relation("ConversationUser1")
+  conversationsAsUser2 Conversation[] @relation("ConversationUser2")
+  sentMessages         Message[]      @relation("SentMessages")
 
   @@map("users")
 }
@@ -164,14 +167,14 @@ model Application {
   id             String            @id @default(uuid())
   status         ApplicationStatus @default(PENDING)
   coverLetter    String?
-  resumeSnapshot String?           // copy of resume filename at time of apply
+  resumeSnapshot String? // copy of resume filename at time of apply
   employerNote   String?
   appliedAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   // Relations
-  jobId       String
-  job         Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId String
+  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   applicantId String
   applicant   User   @relation("SeekerApplications", fields: [applicantId], references: [id], onDelete: Cascade)
@@ -190,7 +193,7 @@ model Notification {
   title     String
   message   String
   type      NotificationType
-  link      String?          // e.g. /seeker/applications/123
+  link      String? // e.g. /seeker/applications/123
   read      Boolean          @default(false)
   createdAt DateTime         @default(now())
 
@@ -215,18 +218,18 @@ enum PostType {
 }
 
 model Post {
-  id        String    @id @default(uuid())
-  content   String
-  image     String?
-  type      PostType  @default(UPDATE)
+  id         String   @id @default(uuid())
+  content    String
+  image      String?
+  type       PostType @default(UPDATE)
   likesCount Int      @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  authorId  String
-  author    User      @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
-  likes     Like[]
-  comments  Comment[]
+  authorId String
+  author   User      @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  likes    Like[]
+  comments Comment[]
 
   @@map("posts")
 }
@@ -235,10 +238,10 @@ model Like {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
 
-  postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation("UserLikes", fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("UserLikes", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@map("likes")
@@ -249,13 +252,13 @@ model Comment {
   content   String
   createdAt DateTime @default(now())
 
-  postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User     @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
-  parentId  String?
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[] @relation("CommentReplies")
+  postId   String
+  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User      @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
 
   @@map("comments")
 }
@@ -275,36 +278,50 @@ model Connection {
 }
 
 model Conversation {
-  id        String    @id @default(uuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user1Id   String
-  user1     User      @relation("ConversationUser1", fields: [user1Id], references: [id], onDelete: Cascade)
-  user2Id   String
-  user2     User      @relation("ConversationUser2", fields: [user2Id], references: [id], onDelete: Cascade)
-  messages  Message[]
-  
-  deletedFor String[] @default([])  // Users who soft-deleted this conversation
+  user1Id  String
+  user1    User      @relation("ConversationUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id  String
+  user2    User      @relation("ConversationUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  deletedFor String[] @default([]) // Users who soft-deleted this conversation
 
   @@unique([user1Id, user2Id])
   @@map("conversations")
 }
 
 model Message {
-  id             String       @id @default(uuid())
-  content        String
-  read           Boolean      @default(false)
-  createdAt      DateTime     @default(now())
+  id        String   @id @default(uuid())
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   senderId       String
   sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  
-  deletedFor     String[]     @default([])  // Users who soft-deleted this message
+
+  deletedFor String[]          @default([])
+  reactions  MessageReaction[]
 
   @@map("messages")
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  type      String
+  userId    String
+  messageId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
 }
 
 model ContactMessage {

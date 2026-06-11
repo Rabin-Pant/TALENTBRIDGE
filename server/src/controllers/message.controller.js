@@ -20,10 +20,10 @@ export const getConversations = async (req, res) => {
       },
       include: {
         user1: {
-          select: { id: true, fullName: true, currentTitle: true, companyName: true, role: true },
+          select: { id: true, fullName: true, currentTitle: true, companyName: true, role: true, profilePicture: true },
         },
         user2: {
-          select: { id: true, fullName: true, currentTitle: true, companyName: true, role: true },
+          select: { id: true, fullName: true, currentTitle: true, companyName: true, role: true, profilePicture: true },
         },
         messages: {
           take: 1,
@@ -94,9 +94,9 @@ export const getOrCreateConversation = async (req, res) => {
           { user1Id: targetId, user2Id: userId },
         ],
       },
-      include: {
-        user1: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
-        user2: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
+     include: {
+        user1: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true, profilePicture: true } },
+        user2: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true, profilePicture: true } },
       },
     });
 
@@ -168,10 +168,27 @@ export const getMessages = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const messages = await prisma.message.findMany({
+    // Includes the message reactions list along with the user's name details
+   const messages = await prisma.message.findMany({
       where: { conversationId },
       orderBy: { createdAt: "asc" },
-      include: { sender: { select: { id: true, fullName: true } } },
+      include: { 
+      
+        sender: { 
+          select: { 
+            id: true, 
+            fullName: true, 
+            role: true, 
+            profilePicture: true 
+          } 
+        },
+      
+        reactions: {
+          include: {
+            user: { select: { fullName: true } }
+          }
+        }
+      },
     });
 
     const filteredMessages = messages.filter(msg => !msg.deletedFor.includes(userId));
@@ -228,7 +245,7 @@ export const sendMessage = async (req, res) => {
         read: false,
         deletedFor: [] 
       },
-      include: { sender: { select: { id: true, fullName: true } } },
+      include: { sender: { select: { id: true, fullName: true, role: true, profilePicture: true } } },
     });
 
     await prisma.conversation.update({
@@ -396,6 +413,85 @@ export const markConversationRead = async (req, res) => {
     res.json({ message: `Marked messages as read` });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── TOGGLE MESSAGE REACTION ──────────────────────────
+export const toggleReaction = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { type } = req.body; 
+    const userId = req.user.id;
+
+    if (!type) {
+      return res.status(400).json({ message: "Reaction type is required" });
+    }
+
+   
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      include: { conversation: true }
+    });
+
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    const existingReaction = await prisma.messageReaction.findFirst({
+      where: { messageId, userId },
+    });
+
+    if (existingReaction) {
+      if (existingReaction.type === type) {
+        await prisma.messageReaction.delete({
+          where: { id: existingReaction.id },
+        });
+      } else {
+        await prisma.messageReaction.update({
+          where: { id: existingReaction.id },
+          data: { type },
+        });
+      }
+    } else {
+      await prisma.messageReaction.create({
+        data: { messageId, userId, type },
+      });
+    }
+
+    const updatedReactions = await prisma.messageReaction.findMany({
+      where: { messageId },
+      select: {
+        id: true,
+        type: true,
+        userId: true,
+        user: { select: { fullName: true } },
+      },
+    });
+
+   
+    try {
+      
+      const { io } = await import("../../server.js");
+      if (io && message.conversation) {
+        // Determine the ID of the other user in this chat
+        const targetUserId = message.conversation.user1Id === userId 
+          ? message.conversation.user2Id 
+          : message.conversation.user1Id;
+
+        // Broadcast directly to the receiver's private socket room channel
+        io.to(targetUserId).emit("messageReactionUpdated", {
+          messageId,
+          reactions: updatedReactions,
+        });
+      }
+    } catch (socketErr) {
+      console.error("Socket broadcast error:", socketErr.message);
+    }
+
+    res.json({ messageId, reactions: updatedReactions });
+  } catch (err) {
+    console.error("toggleReaction error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
