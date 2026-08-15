@@ -270,7 +270,7 @@ Then open: **http://localhost:5173**
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@talentbridge.com | admin123 |
+| Admin | admin@talentbridge.com | Passw0rd1 |
 
 ### Production Build
 
@@ -309,11 +309,6 @@ npm start or npm run dev
 
 ---
 
-## 📄 License
-
-MIT License — feel free to use this project for learning and personal projects.
-
----
 
 <div align="center">
 Made with ❤️ by <strong>Rabin Pant</strong>
