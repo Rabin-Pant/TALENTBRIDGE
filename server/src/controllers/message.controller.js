@@ -110,8 +110,8 @@ export const getOrCreateConversation = async (req, res) => {
           updatedAt: new Date()
         },
         include: {
-          user1: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
-          user2: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
+          user1: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true, profilePicture: true } },
+          user2: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true, profilePicture: true } },
         },
       });
     }
@@ -123,8 +123,8 @@ export const getOrCreateConversation = async (req, res) => {
           deletedFor: [],
         },
         include: {
-          user1: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
-          user2: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true } },
+          user1: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true, profilePicture: true } },
+          user2: { select: { id: true, fullName: true, role: true, currentTitle: true, companyName: true, profilePicture: true } },
         },
       });
     }

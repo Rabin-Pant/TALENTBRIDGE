@@ -1,19 +1,23 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import authMiddleware from "../middleware/auth.middleware.js";
 import {
   getFeed, createPost, deletePost,
-  toggleLike, addComment, getComments, getUserPosts, deleteComment
+  toggleLike, addComment, getComments, getUserPosts, deleteComment, getLikes
 } from "../controllers/feed.controller.js";
 import { getPublicProfile } from "../controllers/connection.controller.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const postsUploadDir = path.join(__dirname, "../../uploads/posts/");
+fs.mkdirSync(postsUploadDir, { recursive: true });
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, "../../uploads/")),
+  destination: (req, file, cb) => cb(null, postsUploadDir),
   filename: (req, file, cb) => {
     cb(null, `post-${Date.now()}${path.extname(file.originalname)}`);
   },
@@ -36,6 +40,7 @@ router.get("/",                    getFeed);
 router.post("/",                   upload.single("image"), createPost);
 router.delete("/:id",              deletePost);
 router.post("/:id/like",           toggleLike);
+router.get("/:id/likes",           getLikes);
 router.post("/:id/comment",        addComment);
 router.get("/:id/comments",        getComments);
 router.get("/user/:userId",        getUserPosts);

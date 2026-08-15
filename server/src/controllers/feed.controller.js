@@ -86,7 +86,7 @@ export const getFeed = async (req, res) => {
 export const createPost = async (req, res) => {
   try {
     let { content, type } = req.body;
-    const image = req.file ? req.file.filename : null;
+    const image = req.file ? `posts/${req.file.filename}` : null;
 
     if (!content && !image) {
       return res.status(400).json({ message: "Post content or image is required" });
@@ -189,6 +189,33 @@ export const toggleLike = async (req, res) => {
     }
 
     res.json({ liked: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── GET POST LIKERS ──────────────────────────────────
+export const getLikes = async (req, res) => {
+  try {
+    const likes = await prisma.like.findMany({
+      where: { postId: req.params.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            currentTitle: true,
+            companyName: true,
+            role: true,
+            profilePicture: true,
+          },
+        },
+      },
+    });
+
+    res.json({ users: likes.map((l) => l.user) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
