@@ -309,11 +309,6 @@ npm start or npm run dev
 
 ---
 
-## 📄 License
-
-MIT License — feel free to use this project for learning and personal projects.
-
----
 
 <div align="center">
 Made with ❤️ by <strong>Rabin Pant</strong>
