@@ -270,7 +270,7 @@ Then open: **http://localhost:5173**
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@talentbridge.com | admin123 |
+| Admin | admin@talentbridge.com | Passw0rd1 |
 
 ### Production Build
 
