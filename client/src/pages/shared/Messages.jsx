@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Send, Search, MessageCircle, ArrowLeft,
-  Sparkles, Trash2, MoreVertical, X, AlertTriangle, UserPlus, Smile
+  Sparkles, Trash2, MoreVertical, X, AlertTriangle, UserPlus, Smile, User
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -13,13 +13,9 @@ import { format, isToday, isYesterday } from "date-fns";
 import AnimatedBackground from "../../components/AnimatedBackground";
 
 // 🌟 FIXED: Supports both 'profilePicture' and 'profilePic' along with resilient URL resolution
-const Avatar = ({ name, role, size = "md", online = false, profilePicture, profilePic }) => {
+const Avatar = ({ name, size = "md", online = false, profilePicture, profilePic }) => {
   const sizes = { sm: "w-8 h-8 text-xs", md: "w-11 h-11 text-sm", lg: "w-14 h-14 text-lg" };
-  const colors = {
-    SEEKER:   "from-blue-500 to-purple-600",
-    EMPLOYER: "from-green-500 to-teal-600",
-    ADMIN:    "from-red-500 to-orange-500",
-  };
+  const iconSizes = { sm: 16, md: 22, lg: 28 };
 
   const [imgError, setImgError] = useState(false);
   const targetPic = profilePicture || profilePic;
@@ -52,8 +48,8 @@ const Avatar = ({ name, role, size = "md", online = false, profilePicture, profi
           onError={() => setImgError(true)}
         />
       ) : (
-        <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center text-white font-bold`}>
-          <span>{name?.charAt(0)?.toUpperCase() || "?"}</span>
+        <div className={`${sizes[size]} rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center`}>
+          <User size={iconSizes[size]} className="text-gray-400" strokeWidth={1.75} />
         </div>
       )}
       {online && (

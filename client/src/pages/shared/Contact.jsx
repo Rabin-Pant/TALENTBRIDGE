@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
-  Briefcase, Mail, Phone, MapPin, Send, MessageCircle,
+  Briefcase, Mail, Phone, MapPin, Send,
   CheckCircle, Sparkles, Clock, Globe, AlertCircle
 } from "lucide-react";
 import api from "../../api/axios";
@@ -69,11 +69,11 @@ const Contact = () => {
         {/* Header */}
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-slate-200 rounded-full mb-5 shadow-sm">
-            <Sparkles size={15} className="text-indigo-600" />
+            <Sparkles size={15} className="text-blue-600" />
             <span className="text-sm font-semibold text-slate-700">We're Here to Help</span>
           </div>
           <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-4 tracking-tight">
-            Get in <span className="text-indigo-600">Touch</span>
+            Get in <span className="text-blue-600">Touch</span>
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             Have questions about finding a job or hiring talent? Send us a message and we'll get back to you promptly.
@@ -93,7 +93,7 @@ const Contact = () => {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
                 <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-md">
-                  <MapPin size={14} className="text-indigo-600" />
+                  <MapPin size={14} className="text-blue-600" />
                   <span className="text-sm font-semibold text-slate-900">Kathmandu, Nepal</span>
                 </div>
               </div>
@@ -105,13 +105,13 @@ const Contact = () => {
               <div className="space-y-5">
                 {contactInfo.map((info, idx) => (
                   <div key={idx} className="flex items-start gap-3 group">
-                    <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
-                      <info.icon size={18} className="text-indigo-600" />
+                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                      <info.icon size={18} className="text-blue-600" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{info.label}</p>
                       {info.link ? (
-                        <a href={info.link} className="text-sm text-slate-700 hover:text-indigo-600 transition-colors font-medium">
+                        <a href={info.link} className="text-sm text-slate-700 hover:text-blue-600 transition-colors font-medium">
                           {info.value}
                         </a>
                       ) : (
@@ -124,7 +124,7 @@ const Contact = () => {
             </div>
 
             {/* Social */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white text-center shadow-lg">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white text-center shadow-lg">
               <Globe size={28} className="mx-auto mb-3 opacity-80" />
               <p className="font-semibold mb-1">Connect with us</p>
               <p className="text-sm text-white/70 mb-4">Follow us on social media</p>
@@ -148,7 +148,7 @@ const Contact = () => {
                   <p className="text-slate-500 mb-6">Thank you for reaching out. We'll get back to you within 24 hours.</p>
                   <button
                     onClick={() => setSubmitted(false)}
-                    className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors cursor-pointer"
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors cursor-pointer"
                   >
                     Send Another Message
                   </button>
@@ -173,7 +173,7 @@ const Contact = () => {
                           name="name"
                           value={formData.name}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                           placeholder="John Doe"
                         />
                       </div>
@@ -184,7 +184,7 @@ const Contact = () => {
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                           placeholder="your@email.com"
                         />
                       </div>
@@ -197,7 +197,7 @@ const Contact = () => {
                         name="subject"
                         value={formData.subject}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                         placeholder="How can we help?"
                       />
                     </div>
@@ -209,7 +209,7 @@ const Contact = () => {
                         rows={6}
                         value={formData.message}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all resize-none"
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-none"
                         placeholder="Tell us how we can assist you..."
                       />
                     </div>
@@ -217,7 +217,7 @@ const Contact = () => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full flex items-center justify-center gap-2 py-3.5 bg-indigo-600 text-white rounded-xl font-bold text-base hover:bg-indigo-700 active:bg-indigo-800 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-base hover:bg-blue-700 active:bg-blue-800 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {loading ? (
                         <>
@@ -244,7 +244,7 @@ const Contact = () => {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <Briefcase size={16} className="text-white" />
                 </div>
                 <span className="font-bold text-white text-lg">TalentBridge</span>

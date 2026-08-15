@@ -154,10 +154,8 @@ const AdminApplications = () => {
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
-                              <span className="text-blue-600 font-semibold text-sm">
-                                {app.applicant?.fullName?.charAt(0)?.toUpperCase() || "?"}
-                              </span>
+                            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
+                              <User size={20} className="text-gray-400" strokeWidth={1.75} />
                             </div>
                             <div>
                               <p className="font-medium text-gray-900 text-sm">{app.applicant?.fullName || "—"}</p>

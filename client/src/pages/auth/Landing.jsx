@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Briefcase, Users, MessageCircle, TrendingUp, Award, Shield,
-  ArrowRight, CheckCircle, Star, Globe, Clock, Zap,
-  Building2, FileText, Send, Heart, Sparkles, ChevronRight,
-  UserPlus, MapPin, UserCheck, Search
+  ArrowRight, Star, Zap,
+  Building2, FileText, Sparkles, ChevronRight,
+  UserPlus, UserCheck, Search
 } from "lucide-react";
 import api from "../../api/axios";
 
@@ -26,7 +26,6 @@ const Landing = () => {
     totalEmployers: 0,
     totalHires: 0
   });
-  const [recentJobs, setRecentJobs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +39,6 @@ const Landing = () => {
           totalEmployers: res.data.stats?.totalEmployers || 0,
           totalHires: res.data.stats?.totalHires || 0,
         });
-        setRecentJobs(res.data.recentJobs || []);
       } catch (err) {
         console.error("Failed to fetch landing data:", err);
       } finally {
@@ -267,46 +265,6 @@ const Landing = () => {
           </div>
         </div>
       </div>
-
-      {/* Recent Jobs Section */}
-      {recentJobs.length > 0 && (
-        <div className="py-24 bg-gradient-to-b from-gray-50 to-white perspective-1000">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Latest Job Openings</h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Discover the latest opportunities from top companies
-              </p>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {recentJobs.slice(0, 6).map((job) => (
-                <div key={job.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-3d-subtle hover:border-blue-200">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">{job.title}</h3>
-                      <p className="text-sm font-medium text-blue-600">{job.company}</p>
-                    </div>
-                    <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">{job.jobType || "Full Time"}</span>
-                  </div>
-                  {job.location && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 bg-gray-50 p-2 rounded-lg">
-                      <MapPin size={16} className="text-gray-400" /> {job.location}
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-50">
-                    <span className="text-xs font-medium text-gray-400 flex items-center gap-1">
-                      <Clock size={12} /> Posted {new Date(job.postedAt).toLocaleDateString()}
-                    </span>
-                    <Link to="/register" className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 group">
-                      Apply Now <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* CTA SECTION – FIXED: no animations, working buttons */}
       <div className="py-24 relative overflow-hidden">

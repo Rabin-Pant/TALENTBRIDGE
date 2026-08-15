@@ -401,16 +401,14 @@ const handleCoverPictureUpload = async (e) => {
       onClick={() => profilePictureUrl && setShowProfilePicModal(true)}
     >
       {profilePictureUrl ? (
-        <img 
-          src={profilePictureUrl} 
+        <img
+          src={profilePictureUrl}
           alt={profileData?.fullName}
           className="w-full h-full object-cover"
         />
       ) : (
-        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-          <span className="text-white font-bold text-3xl">
-            {profileData?.fullName?.charAt(0)?.toUpperCase()}
-          </span>
+        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+          <User size={48} className="text-gray-400" strokeWidth={1.75} />
         </div>
       )}
     </div>

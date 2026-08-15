@@ -5,23 +5,19 @@ import {
   Building2, Calendar, ArrowLeft, MessageCircle,
   UserPlus, UserCheck, UserX, Clock, Award,
   Code, FileText, ExternalLink, Sparkles, X,
-  Heart
+  Heart, User
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 
-const Avatar = ({ name, role, size = "lg", profilePicture }) => {
+const Avatar = ({ name, size = "lg", profilePicture }) => {
   const sizes = { sm: "w-10 h-10 text-sm", md: "w-14 h-14 text-xl", lg: "w-20 h-20 text-3xl" };
-  const colors = {
-    SEEKER:   "from-blue-500 to-indigo-600",
-    EMPLOYER: "from-emerald-500 to-teal-600",
-    ADMIN:    "from-gray-700 to-gray-800",
-  };
-  
+  const iconSizes = { sm: 20, md: 28, lg: 40 };
+
   const profilePictureUrl = profilePicture ? `http://localhost:5000/uploads/${profilePicture}` : null;
-  
+
   if (profilePictureUrl) {
     return (
       <div className={`${sizes[size]} rounded-full overflow-hidden flex-shrink-0 border-4 border-white shadow-md cursor-pointer hover:scale-105 transition-transform duration-300`}>
@@ -29,10 +25,10 @@ const Avatar = ({ name, role, size = "lg", profilePicture }) => {
       </div>
     );
   }
-  
+
   return (
-    <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0 border-4 border-white shadow-md transition-transform duration-300 hover:scale-105`}>
-      <span className="text-white font-bold">{name?.charAt(0)?.toUpperCase()}</span>
+    <div className={`${sizes[size]} rounded-full bg-gray-100 border-4 border-white shadow-md flex items-center justify-center flex-shrink-0 transition-transform duration-300 hover:scale-105`}>
+      <User size={iconSizes[size]} className="text-gray-400" strokeWidth={1.75} />
     </div>
   );
 };

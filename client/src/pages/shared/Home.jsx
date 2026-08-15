@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Heart, MessageCircle, Send, Image, X,
-  Briefcase, Award, Megaphone, FileText,
+  Briefcase, Award, Megaphone,
   MoreHorizontal, Trash2, Sparkles, Users,
-  ChevronDown, ChevronUp, UserPlus, Globe, MapPin
+  ChevronDown, ChevronUp, UserPlus, Globe, MapPin, User
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -30,13 +30,9 @@ const timeAgo = (date) => {
   return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-const Avatar = ({ name, role, size = "sm", profilePicture }) => {
+const Avatar = ({ name, size = "sm", profilePicture }) => {
   const sizes = { xs: "w-7 h-7 text-xs", sm: "w-9 h-9 text-sm", md: "w-11 h-11 text-base", lg: "w-14 h-14 text-xl" };
-  const colors = {
-    SEEKER:   "from-blue-500 to-indigo-600",
-    EMPLOYER: "from-emerald-500 to-teal-600",
-    ADMIN:    "from-rose-500 to-red-600",
-  };
+  const iconSizes = { xs: 14, sm: 18, md: 22, lg: 28 };
   const profilePictureUrl = profilePicture ? `http://localhost:5000/uploads/${profilePicture}` : null;
   if (profilePictureUrl) {
     return (
@@ -46,8 +42,8 @@ const Avatar = ({ name, role, size = "sm", profilePicture }) => {
     );
   }
   return (
-    <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white`}>
-      <span className="text-white font-bold leading-none">{name?.charAt(0)?.toUpperCase()}</span>
+    <div className={`${sizes[size]} rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white`}>
+      <User size={iconSizes[size]} className="text-gray-400" strokeWidth={1.75} />
     </div>
   );
 };
@@ -279,12 +275,58 @@ const CommentSection = ({ postId, initialComments = [], initialCount = 0, user, 
   );
 };
 
+const LikesModal = ({ postId, onClose }) => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    api.get(`/feed/${postId}/likes`)
+      .then((res) => { if (active) setUsers(res.data.users); })
+      .catch((err) => console.error(err))
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [postId]);
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[70vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+            <span className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center"><Heart size={9} className="text-white fill-white" /></span>
+            Liked by
+          </h3>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"><X size={16} className="text-gray-400" /></button>
+        </div>
+        <div className="overflow-y-auto px-2 py-2">
+          {loading ? (
+            <div className="py-8 flex justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin" /></div>
+          ) : users.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-8">No likes yet</p>
+          ) : (
+            users.map((u) => (
+              <Link key={u.id} to={`/profile/${u.id}`} onClick={onClose} className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors">
+                <Avatar name={u.fullName} role={u.role} size="sm" profilePicture={u.profilePicture} />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{u.fullName}</p>
+                  <p className="text-xs text-gray-500 truncate">{u.currentTitle || u.companyName || u.role?.toLowerCase()}</p>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PostCard = ({ post, onDelete, user }) => {
   const [liked, setLiked] = useState(post.isLiked);
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
   const [showComments, setShowComments] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [imgExpanded, setImgExpanded] = useState(false);
+  const [showLikes, setShowLikes] = useState(false);
   const menuRef = useRef();
 
   useEffect(() => {
@@ -344,7 +386,7 @@ const PostCard = ({ post, onDelete, user }) => {
       {(likesCount > 0 || post._count?.comments > 0) && (
         <div className="flex items-center justify-between px-4 py-2 text-xs text-gray-500">
           {likesCount > 0 && (
-            <button onClick={handleLike} className="flex items-center gap-1 hover:underline">
+            <button onClick={() => setShowLikes(true)} className="flex items-center gap-1 hover:underline">
               <span className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center"><Heart size={8} className="text-white fill-white" /></span>
               {likesCount}
             </button>
@@ -374,6 +416,7 @@ const PostCard = ({ post, onDelete, user }) => {
 />
         </div>
       )}
+      {showLikes && <LikesModal postId={post.id} onClose={() => setShowLikes(false)} />}
     </div>
   );
 };
@@ -382,10 +425,10 @@ const PostCard = ({ post, onDelete, user }) => {
 const SuggestionRow = ({ user: u, onConnect }) => (
   <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
     <Link to={`/profile/${u.id}`} className="flex-shrink-0">
-      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${u.role === "EMPLOYER" ? "from-emerald-500 to-teal-600" : "from-blue-500 to-indigo-600"} flex items-center justify-center ring-2 ring-white shadow-sm`}>
+      <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center ring-2 ring-white shadow-sm overflow-hidden">
         {u.profilePicture
           ? <img src={`http://localhost:5000/uploads/${u.profilePicture}`} alt={u.fullName} className="w-full h-full object-cover rounded-full" />
-          : <span className="text-white font-bold text-sm">{u.fullName?.charAt(0)?.toUpperCase()}</span>
+          : <User size={20} className="text-gray-400" strokeWidth={1.75} />
         }
       </div>
     </Link>
@@ -532,13 +575,13 @@ const Home = () => {
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-gray-900 text-sm">People you may know</h3>
-                  <Link to="/network" className="text-xs text-blue-600 hover:underline font-medium">See all</Link>
+                  <Link to="/network?tab=suggestions" className="text-xs text-blue-600 hover:underline font-medium">See all</Link>
                 </div>
                 {suggestions.length === 0 ? (
                   <div className="text-center py-6">
                     <Users size={28} className="text-gray-300 mx-auto mb-2" />
                     <p className="text-xs text-gray-400">No suggestions right now</p>
-                    <Link to="/network" className="text-xs text-blue-600 hover:underline mt-1 block">Browse network</Link>
+                    <Link to="/network?tab=suggestions" className="text-xs text-blue-600 hover:underline mt-1 block">Browse network</Link>
                   </div>
                 ) : (
                   suggestions.slice(0, 5).map((u) => (

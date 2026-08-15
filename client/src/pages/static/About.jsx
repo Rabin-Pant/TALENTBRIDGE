@@ -65,7 +65,7 @@ const About = () => {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="relative w-20 h-20 animate-float">
           <div className="absolute inset-0 rounded-full border-4 border-slate-200 shadow-sm" />
-          <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin-fast" />
+          <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin-fast" />
         </div>
       </div>
     );
@@ -84,12 +84,12 @@ const About = () => {
         
         {/* Hero Section */}
         <div className="text-center mb-24 animate-float-slow">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-slate-200 rounded-full mb-6 shadow-sm hover:border-indigo-200 transition-colors">
-            <Sparkles size={16} className="text-indigo-600" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-slate-200 rounded-full mb-6 shadow-sm hover:border-blue-200 transition-colors">
+            <Sparkles size={16} className="text-blue-600" />
             <span className="text-sm font-semibold text-slate-700">Our Story</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight">
-            Connecting Talent with <br/><span className="text-indigo-600">Opportunity</span>
+            Connecting Talent with <br/><span className="text-blue-600">Opportunity</span>
           </h1>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto font-light leading-relaxed">
             TalentBridge was founded with a simple mission: to make job searching and hiring easier, faster, and more effective for everyone.
@@ -102,8 +102,8 @@ const About = () => {
             {statItems.map((stat, idx) => (
               <div key={idx} className="text-center group">
                 <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 group-hover:rotate-12 group-hover:scale-110 group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-all duration-300">
-                    <stat.icon size={28} className="text-slate-500 group-hover:text-indigo-600 transition-colors" />
+                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 group-hover:rotate-12 group-hover:scale-110 group-hover:bg-blue-50 group-hover:border-blue-100 transition-all duration-300">
+                    <stat.icon size={28} className="text-slate-500 group-hover:text-blue-600 transition-colors" />
                   </div>
                 </div>
                 <p className="text-4xl font-black text-slate-900 mb-1">{stat.value}</p>
@@ -116,9 +116,9 @@ const About = () => {
         {/* Mission Section with 3D Image Container */}
         <div className="grid lg:grid-cols-2 gap-16 mb-24 items-center perspective-1000">
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full mb-2">
-              <Target size={16} className="text-indigo-600" />
-              <span className="text-sm font-bold text-indigo-700 uppercase tracking-wide">Our Mission</span>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-full mb-2">
+              <Target size={16} className="text-blue-600" />
+              <span className="text-sm font-bold text-blue-700 uppercase tracking-wide">Our Mission</span>
             </div>
             <h2 className="text-4xl font-black text-slate-900 leading-tight">
               Empowering Professionals in the Digital Age
@@ -131,7 +131,7 @@ const About = () => {
             </p>
             <div className="pt-4">
               <div className="flex items-center gap-4 text-slate-900 font-bold">
-                <Globe size={24} className="text-indigo-600" />
+                <Globe size={24} className="text-blue-600" />
                 "Bridging the gap between global talent and opportunity"
               </div>
             </div>
@@ -146,7 +146,7 @@ const About = () => {
               className="w-full h-full object-cover transform group-hover:scale-110 group-hover:-rotate-2 transition-transform duration-1000 ease-out"
             />
             {/* Floating accent block */}
-            <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-indigo-600 rounded-3xl -z-10 group-hover:translate-x-4 group-hover:-translate-y-4 transition-transform duration-700"></div>
+            <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-blue-600 rounded-3xl -z-10 group-hover:translate-x-4 group-hover:-translate-y-4 transition-transform duration-700"></div>
           </div>
         </div>
 
@@ -162,10 +162,10 @@ const About = () => {
             {values.map((value, idx) => (
               <div key={idx} className="bg-white rounded-2xl p-8 border border-slate-200 card-3d group relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-full -z-10 group-hover:scale-150 transition-transform duration-700"></div>
-                <div className="w-14 h-14 bg-slate-100 rounded-xl flex items-center justify-center mb-6 group-hover:-translate-y-2 group-hover:bg-indigo-50 transition-all duration-300 transform-style-3d">
-                  <value.icon size={26} className="text-slate-600 group-hover:text-indigo-600 transition-colors" />
+                <div className="w-14 h-14 bg-slate-100 rounded-xl flex items-center justify-center mb-6 group-hover:-translate-y-2 group-hover:bg-blue-50 transition-all duration-300 transform-style-3d">
+                  <value.icon size={26} className="text-slate-600 group-hover:text-blue-600 transition-colors" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-indigo-700 transition-colors">{value.title}</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-700 transition-colors">{value.title}</h3>
                 <p className="text-slate-600 leading-relaxed font-light">{value.description}</p>
               </div>
             ))}
@@ -196,8 +196,8 @@ const About = () => {
                         className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-3 transition-transform duration-700"
                       />
                     ) : (
-                      <div className="w-full h-full bg-indigo-100 flex items-center justify-center">
-                        <span className="text-indigo-600 font-black text-5xl">
+                      <div className="w-full h-full bg-blue-100 flex items-center justify-center">
+                        <span className="text-blue-600 font-black text-5xl">
                           {member.name.charAt(0)}
                         </span>
                       </div>
@@ -205,13 +205,13 @@ const About = () => {
                   </div>
                   
                   {/* Decorative badge */}
-                  <div className="absolute bottom-0 right-8 w-10 h-10 bg-indigo-600 rounded-full border-4 border-white flex items-center justify-center shadow-md z-20 group-hover:scale-125 transition-transform duration-300">
+                  <div className="absolute bottom-0 right-8 w-10 h-10 bg-blue-600 rounded-full border-4 border-white flex items-center justify-center shadow-md z-20 group-hover:scale-125 transition-transform duration-300">
                     <Zap size={16} className="text-white" />
                   </div>
                 </div>
 
                 <h3 className="font-black text-slate-900 text-2xl mb-1">{member.name}</h3>
-                <p className="text-sm font-bold text-indigo-600 uppercase tracking-wide mb-4">{member.role}</p>
+                <p className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">{member.role}</p>
                 <p className="text-slate-600 font-light leading-relaxed">{member.bio}</p>
               </div>
             ))}
@@ -221,8 +221,8 @@ const About = () => {
         {/* CTA Section - Professional Dark Slate */}
         <div className="relative overflow-hidden rounded-3xl bg-slate-900 card-3d p-12 md:p-20 text-center">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500 rounded-full blur-[80px] opacity-20"></div>
-          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-500 rounded-full blur-[80px] opacity-20"></div>
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500 rounded-full blur-[80px] opacity-20"></div>
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-500 rounded-full blur-[80px] opacity-20"></div>
           
           <div className="relative z-10">
             <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Ready to Join Us?</h2>
@@ -231,7 +231,7 @@ const About = () => {
             </p>
             <Link
               to="/register"
-              className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-500 transition-all duration-300 transform hover:-translate-y-1 shadow-lg text-lg border border-indigo-500 group"
+              className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-all duration-300 transform hover:-translate-y-1 shadow-lg text-lg border border-blue-500 group"
             >
               Create Free Account <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -246,7 +246,7 @@ const About = () => {
     <div className="grid md:grid-cols-4 gap-8">
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
             <Briefcase size={16} className="text-white" />
           </div>
           <span className="font-bold text-white text-lg">TalentBridge</span>

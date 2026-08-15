@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X, UserPlus, UserCheck, Clock } from "lucide-react";
+import { Search, X, UserPlus, UserCheck, Clock, User } from "lucide-react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
@@ -274,8 +274,8 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                 className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors"
               >
                 {/* Avatar */}
-                <div 
-                  className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600 cursor-pointer"
+                <div
+                  className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 cursor-pointer"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -284,16 +284,14 @@ const SearchDropdown = ({ isOpen, onClose }) => {
                   onClick={() => handleViewProfile(result.id)}
                 >
                   {profilePicUrl ? (
-                    <img 
-                      src={profilePicUrl} 
+                    <img
+                      src={profilePicUrl}
                       alt={result.fullName}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">
-                        {result.fullName?.charAt(0)?.toUpperCase()}
-                      </span>
+                      <User size={20} className="text-gray-400" strokeWidth={1.75} />
                     </div>
                   )}
                 </div>

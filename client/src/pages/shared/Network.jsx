@@ -1,26 +1,21 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Users, UserCheck, UserX, Clock, MapPin,
-  Briefcase, Building2, Sparkles, Search,
+  Sparkles, Search, User,
   UserPlus, Check, X
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import api from "../../api/axios";
-import { useAuth } from "../../context/AuthContext";
 import AnimatedBackground from "../../components/AnimatedBackground";
 
-const Avatar = ({ name, role, size = "md", profilePicture }) => {
+const Avatar = ({ name, size = "md", profilePicture }) => {
   const sizes = { sm: "w-9 h-9 text-sm", md: "w-12 h-12 text-base", lg: "w-16 h-16 text-xl" };
-  const colors = {
-    SEEKER:   "from-blue-500 to-purple-600",
-    EMPLOYER: "from-green-500 to-teal-600",
-    ADMIN:    "from-red-500 to-orange-500",
-  };
-  
+  const iconSizes = { sm: 18, md: 24, lg: 32 };
+
   const profilePictureUrl = profilePicture ? `http://localhost:5000/uploads/${profilePicture}` : null;
-  
+
   if (profilePictureUrl) {
     return (
       <div className={`${sizes[size]} rounded-full overflow-hidden flex-shrink-0`}>
@@ -28,10 +23,10 @@ const Avatar = ({ name, role, size = "md", profilePicture }) => {
       </div>
     );
   }
-  
+
   return (
-    <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${colors[role] || colors.SEEKER} flex items-center justify-center flex-shrink-0`}>
-      <span className="text-white font-bold">{name?.charAt(0)?.toUpperCase()}</span>
+    <div className={`${sizes[size]} rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0`}>
+      <User size={iconSizes[size]} className="text-gray-400" strokeWidth={1.75} />
     </div>
   );
 };
@@ -118,7 +113,7 @@ const RequestCard = ({ request, onAccept, onDecline }) => (
 
 const SuggestionCard = ({ user: u, onConnect, connecting }) => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-    <div className="h-12 bg-gradient-to-r from-blue-400 to-purple-500" />
+    <div className="h-12 bg-white border-b border-gray-100" />
     <div className="p-4">
       <div className="-mt-8 mb-3">
         <Avatar 
@@ -151,9 +146,12 @@ const SuggestionCard = ({ user: u, onConnect, connecting }) => (
   </div>
 );
 
+const VALID_TABS = ["connections", "requests", "suggestions"];
+
 const Network = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("connections");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(VALID_TABS.includes(initialTab) ? initialTab : "connections");
   const [connections, setConnections] = useState([]);
   const [requests, setRequests] = useState([]);
   const [suggestions, setSuggestions] = useState([]);

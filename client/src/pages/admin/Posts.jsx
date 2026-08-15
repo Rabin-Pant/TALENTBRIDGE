@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Newspaper, Trash2, Heart, MessageCircle,
-  Sparkles, Search, Image as ImageIcon, Clock, AlertCircle, RefreshCw
+  Sparkles, Search, Image as ImageIcon, Clock, AlertCircle, RefreshCw, User
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -195,8 +195,8 @@ const AdminPosts = () => {
                 >
                   <div className="flex items-start gap-4 flex-1 min-w-0">
                     {/* User Avatar */}
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200/60 flex items-center justify-center flex-shrink-0 border border-gray-200/40 shadow-inner font-bold text-sm text-gray-700">
-                      {post.author?.fullName?.charAt(0)?.toUpperCase()}
+                    <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 border border-gray-200/40 shadow-inner">
+                      <User size={22} className="text-gray-400" strokeWidth={1.75} />
                     </div>
 
                     <div className="flex-1 min-w-0">
