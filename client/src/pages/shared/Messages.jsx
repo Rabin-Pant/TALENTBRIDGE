@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Send, Search, MessageCircle, ArrowLeft,
-  Sparkles, Trash2, MoreVertical, X, AlertTriangle, UserPlus, Smile, User
+  Sparkles, Trash2, AlertTriangle, UserPlus, Smile, User
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -18,11 +18,13 @@ const Avatar = ({ name, size = "md", online = false, profilePicture, profilePic 
   const iconSizes = { sm: 16, md: 22, lg: 28 };
 
   const [imgError, setImgError] = useState(false);
+  const [lastTargetPic, setLastTargetPic] = useState(null);
   const targetPic = profilePicture || profilePic;
 
-  useEffect(() => {
+  if (targetPic !== lastTargetPic) {
+    setLastTargetPic(targetPic);
     setImgError(false);
-  }, [targetPic]);
+  }
 
   const hasImage = targetPic && targetPic.trim() !== "" && !imgError;
   
@@ -95,8 +97,6 @@ const Messages = () => {
   const [showDeleteConvModal, setShowDeleteConvModal] = useState(false);
   const [showDeleteMsgModal, setShowDeleteMsgModal] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
-  const [searching, setSearching] = useState(false);
-  const [deleteMsgOption, setDeleteMsgOption] = useState(null);
   const [activeEmojiMenu, setActiveEmojiMenu] = useState(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -126,64 +126,12 @@ const Messages = () => {
     fetchConversations();
   }, []);
 
-  const handleSearch = async (value) => {
-    setSearch(value);
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    if (!value.trim()) {
-      setSearchResults([]);
-      setShowSearchResults(false);
-      return;
-    }
-    
-    searchTimeoutRef.current = setTimeout(async () => {
-      try {
-        setSearching(true);
-        const connectionsRes = await api.get("/connections");
-        const connectedUsers = connectionsRes.data.connections || [];
-        const filtered = connectedUsers.filter(conn => 
-          conn.user?.fullName?.toLowerCase().includes(value.toLowerCase())
-        );
-        setSearchResults(filtered);
-        setShowSearchResults(true);
-      } catch (err) {
-        console.error("Search error:", err);
-      } finally {
-        setSearching(false);
-      }
-    }, 500);
-  };
-
-  const startConversation = async (targetUser) => {
-    try {
-      setSearching(true);
-      const res = await api.get(`/messages/conversations/${targetUser.id}/get-or-create`);
-      if (res.data.conversation && res.data.conversation.id) {
-        const convRes = await api.get("/messages/conversations");
-        setConversations(convRes.data.conversations || []);
-        openConversation(res.data.conversation);
-        setShowSearchResults(false);
-        setSearch("");
-      }
-    } catch (err) {
-      console.error("Failed to start conversation:", err);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  useEffect(() => {
-    if (urlConvId && conversations.length > 0 && !activeConv) {
-      const conv = conversations.find((c) => c.id === urlConvId);
-      if (conv) openConversation(conv);
-    }
-  }, [urlConvId, conversations]);
-
-  const openConversation = async (conv) => {
+  const openConversation = useCallback(async (conv) => {
     if (!conv?.id) return;
     setActiveConv(conv);
     setIsMobileChat(true);
     setLoadingMessages(true);
-    
+
     try {
       const res = await api.get(`/messages/${conv.id}`);
       setMessages(res.data.messages || []);
@@ -197,7 +145,53 @@ const Messages = () => {
     } finally {
       setLoadingMessages(false);
     }
+  }, [navigate]);
+
+  const handleSearch = async (value) => {
+    setSearch(value);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (!value.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const connectionsRes = await api.get("/connections");
+        const connectedUsers = connectionsRes.data.connections || [];
+        const filtered = connectedUsers.filter(conn =>
+          conn.user?.fullName?.toLowerCase().includes(value.toLowerCase())
+        );
+        setSearchResults(filtered);
+        setShowSearchResults(true);
+      } catch (err) {
+        console.error("Search error:", err);
+      }
+    }, 500);
   };
+
+  const startConversation = async (targetUser) => {
+    try {
+      const res = await api.get(`/messages/conversations/${targetUser.id}/get-or-create`);
+      if (res.data.conversation && res.data.conversation.id) {
+        const convRes = await api.get("/messages/conversations");
+        setConversations(convRes.data.conversations || []);
+        openConversation(res.data.conversation);
+        setShowSearchResults(false);
+        setSearch("");
+      }
+    } catch (err) {
+      console.error("Failed to start conversation:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (urlConvId && conversations.length > 0 && !activeConv) {
+      const conv = conversations.find((c) => c.id === urlConvId);
+      if (conv) queueMicrotask(() => openConversation(conv));
+    }
+  }, [urlConvId, conversations, activeConv, openConversation]);
 
   const handleSend = useCallback(() => {
     if (!text.trim() || !activeConv?.id) return;
@@ -259,20 +253,22 @@ const Messages = () => {
       } else {
         await api.delete(`/messages/message/${selectedMessage.id}/hard`);
       }
-      setMessages(prev => prev.filter(m => m.id !== selectedMessage.id));
-      const remainingMessages = messages.filter(m => m.id !== selectedMessage.id);
-      const lastMessage = remainingMessages.length > 0 ? remainingMessages[remainingMessages.length - 1] : null;
-      
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === activeConv?.id
-            ? { ...conv, lastMessage: lastMessage, updatedAt: lastMessage?.createdAt || conv.updatedAt }
-            : conv
-        )
-      );
+      setMessages(prev => {
+        const remaining = prev.filter(m => m.id !== selectedMessage.id);
+        const lastMessage = remaining.length > 0 ? remaining[remaining.length - 1] : null;
+
+        setConversations(prevConvs =>
+          prevConvs.map(conv =>
+            conv.id === activeConv?.id
+              ? { ...conv, lastMessage, updatedAt: lastMessage?.createdAt || conv.updatedAt }
+              : conv
+          )
+        );
+
+        return remaining;
+      });
       setShowDeleteMsgModal(false);
       setSelectedMessage(null);
-      setDeleteMsgOption(null);
     } catch (err) {
       console.error("Failed to delete message:", err);
       alert("Failed to delete message");
@@ -392,14 +388,14 @@ const Messages = () => {
             <p className="text-gray-600 mb-6">Choose how you want to delete this message.</p>
             <div className="space-y-3">
               <button
-                onClick={() => { setDeleteMsgOption('me'); handleDeleteMessage('me'); }}
+                onClick={() => handleDeleteMessage('me')}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-left hover:bg-gray-50 transition-colors"
               >
                 <div className="font-medium text-gray-900">Delete for me</div>
                 <div className="text-xs text-gray-500">Message will be deleted from your side only</div>
               </button>
               <button
-                onClick={() => { setDeleteMsgOption('everyone'); handleDeleteMessage('everyone'); }}
+                onClick={() => handleDeleteMessage('everyone')}
                 className="w-full px-4 py-3 border border-red-200 rounded-xl text-left hover:bg-red-50 transition-colors"
               >
                 <div className="font-medium text-red-600">Delete for everyone</div>
