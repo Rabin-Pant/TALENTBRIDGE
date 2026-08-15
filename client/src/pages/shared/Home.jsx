@@ -401,9 +401,6 @@ const PostCard = ({ post, onDelete, user }) => {
         <button onClick={() => setShowComments(!showComments)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">
           <MessageCircle size={17} /> Comment
         </button>
-        <Link to="/messages" className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">
-          <Send size={17} /> Send
-        </Link>
       </div>
       {showComments && (
         <div className="px-4 pb-4 border-t border-gray-100 pt-3">
