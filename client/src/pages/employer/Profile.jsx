@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
-  User, MapPin, Briefcase, FileText, Save,
-  Upload, CheckCircle, Sparkles, X, Plus,
-  Building2, Lock, Mail, Phone, Globe,
+  User, MapPin, Save,
+  CheckCircle, Sparkles, X,
+  Lock, Mail, Phone, Globe,
   Users, Camera, Trash2, Hash
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
@@ -28,7 +28,6 @@ const EmployerProfile = () => {
   const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -73,7 +72,7 @@ const EmployerProfile = () => {
       }
     };
     fetch();
-  }, []);
+  }, [reset]);
 
   const onSubmit = async (data) => {
     try {
@@ -282,7 +281,7 @@ const EmployerProfile = () => {
                 onClick={() => setShowCoverModal(true)}
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-r from-green-400 via-teal-500 to-blue-500" />
+              <div className="w-full h-full bg-gray-300" />
             )}
             
             {/* Cover Photo Buttons */}
@@ -324,8 +323,8 @@ const EmployerProfile = () => {
           {/* Profile Picture - Overlapping the cover */}
           <div className="relative px-6">
             <div className="-mt-12 mb-3 relative">
-              <div 
-                className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white cursor-pointer"
+              <div
+                className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white cursor-pointer"
                 onClick={() => profilePictureUrl && setShowProfilePicModal(true)}
               >
                 {profilePictureUrl ? (
@@ -339,8 +338,13 @@ const EmployerProfile = () => {
                     <User size={48} className="text-gray-400" strokeWidth={1.75} />
                   </div>
                 )}
+                {uploadingProfile && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full z-20">
+                    <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
               </div>
-              
+
               {/* Profile Picture Buttons */}
               <div className="absolute -bottom-2 -right-2 flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <label className="bg-green-600 hover:bg-green-700 text-white p-1.5 rounded-full cursor-pointer shadow-lg transition-all z-10">

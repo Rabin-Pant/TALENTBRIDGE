@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
-  MapPin, Mail, Phone, Briefcase, GraduationCap,
+  MapPin, Briefcase, GraduationCap,
   Building2, Calendar, ArrowLeft, MessageCircle,
   UserPlus, UserCheck, UserX, Clock, Award,
   Code, FileText, ExternalLink, Sparkles, X,
-  Heart, User
+  User
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
+import PostCard from "../../components/PostCard";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 
@@ -33,6 +34,66 @@ const Avatar = ({ name, size = "lg", profilePicture }) => {
   );
 };
 
+const ConnectButton = ({
+  isOwnProfile, connStatus, connecting, messaging,
+  handleConnect, handleWithdraw, handleMessage, handleAccept, handleDecline,
+}) => {
+  if (isOwnProfile) return null;
+
+  if (connStatus.status === "ACCEPTED") return (
+    <div className="flex items-center gap-2">
+      <span className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">
+        <UserCheck size={15} /> Connected
+      </span>
+      <button
+        onClick={handleMessage}
+        disabled={messaging}
+        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+      >
+        <MessageCircle size={15} />
+        {messaging ? "Opening..." : "Message"}
+      </button>
+    </div>
+  );
+
+  if (connStatus.status === "PENDING" && connStatus.isSender) return (
+    <button
+      onClick={handleWithdraw}
+      className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+    >
+      <Clock size={15} /> Pending
+    </button>
+  );
+
+  if (connStatus.status === "PENDING" && !connStatus.isSender) return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={handleAccept}
+        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+      >
+        <UserCheck size={15} /> Accept
+      </button>
+      <button
+        onClick={handleDecline}
+        className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+      >
+        <UserX size={15} /> Decline
+      </button>
+    </div>
+  );
+
+  return (
+    <button
+      onClick={handleConnect}
+      disabled={connecting}
+      className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+    >
+      <UserPlus size={15} />
+      {connecting ? "Sending..." : "Connect"}
+    </button>
+  );
+};
+
 const PublicProfile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useAuth();
@@ -52,6 +113,8 @@ const PublicProfile = () => {
   const [showCoverModal, setShowCoverModal] = useState(false);
 
   const isOwnProfile = userId === currentUser?.id;
+
+  const handleDeletePost = (postId) => setPosts((prev) => prev.filter((p) => p.id !== postId));
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -144,79 +207,15 @@ const PublicProfile = () => {
     }
   };
 
-  const ConnectButton = () => {
-    if (isOwnProfile) return null;
-
-    if (connStatus.status === "ACCEPTED") return (
-      <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">
-          <UserCheck size={15} /> Connected
-        </span>
-        <button
-          onClick={handleMessage}
-          disabled={messaging}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-        >
-          <MessageCircle size={15} />
-          {messaging ? "Opening..." : "Message"}
-        </button>
-      </div>
-    );
-
-    if (connStatus.status === "PENDING" && connStatus.isSender) return (
-      <button
-        onClick={handleWithdraw}
-        className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-      >
-        <Clock size={15} /> Pending
-      </button>
-    );
-
-    if (connStatus.status === "PENDING" && !connStatus.isSender) return (
-      <div className="flex items-center gap-2">
-        <button
-          onClick={async () => {
-            await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "ACCEPT" });
-            setConnStatus({ ...connStatus, status: "ACCEPTED" });
-            showToast("Connection accepted!");
-          }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
-          <UserCheck size={15} /> Accept
-        </button>
-        <button
-          onClick={async () => {
-            await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "DECLINE" });
-            setConnStatus({ status: "NONE" });
-          }}
-          className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-        >
-          <UserX size={15} /> Decline
-        </button>
-      </div>
-    );
-
-    return (
-      <button
-        onClick={handleConnect}
-        disabled={connecting}
-        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-      >
-        <UserPlus size={15} />
-        {connecting ? "Sending..." : "Connect"}
-      </button>
-    );
+  const handleAccept = async () => {
+    await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "ACCEPT" });
+    setConnStatus({ ...connStatus, status: "ACCEPTED" });
+    showToast("Connection accepted!");
   };
 
-  const timeAgo = (date) => {
-    const diff = Date.now() - new Date(date).getTime();
-    const mins = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
+  const handleDecline = async () => {
+    await api.put(`/connections/${connStatus.connectionId}/respond`, { action: "DECLINE" });
+    setConnStatus({ status: "NONE" });
   };
 
   if (loading) return (
@@ -339,7 +338,17 @@ const PublicProfile = () => {
                   />
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <ConnectButton />
+                  <ConnectButton
+                    isOwnProfile={isOwnProfile}
+                    connStatus={connStatus}
+                    connecting={connecting}
+                    messaging={messaging}
+                    handleConnect={handleConnect}
+                    handleWithdraw={handleWithdraw}
+                    handleMessage={handleMessage}
+                    handleAccept={handleAccept}
+                    handleDecline={handleDecline}
+                  />
                   {isOwnProfile && (
                     <Link
                       to={profile?.role === "SEEKER" ? "/seeker/profile" : "/employer/profile"}
@@ -551,38 +560,7 @@ const PublicProfile = () => {
                 </div>
               ) : (
                 posts.map((post) => (
-                  <div key={post.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Avatar 
-                        name={profile?.fullName} 
-                        role={profile?.role} 
-                        size="sm"
-                        profilePicture={profile?.profilePicture}
-                      />
-                      <div>
-                        <p className="font-semibold text-gray-900 text-sm">{profile?.fullName}</p>
-                        <p className="text-xs text-gray-400">{timeAgo(post.createdAt)}</p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">{post.content}</p>
-                    {post.image && (
-                      <img
-                        src={`http://localhost:5000/uploads/${post.image}`}
-                        alt="post"
-                        className="w-full rounded-xl mt-3 object-cover max-h-64"
-                      />
-                    )}
-                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Heart size={12} className="text-gray-400" />
-                        {post._count?.likes || 0} likes
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MessageCircle size={12} className="text-gray-400" />
-                        {post._count?.comments || 0} comments
-                      </span>
-                    </div>
-                  </div>
+                  <PostCard key={post.id} post={post} onDelete={handleDeletePost} user={currentUser} />
                 ))
               )}
             </div>
