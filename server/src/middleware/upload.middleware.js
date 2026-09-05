@@ -60,8 +60,15 @@ const fileFilter = (req, file, cb) => {
     } else {
       cb(new Error("Only PDF, DOC, DOCX files are allowed for resume"));
     }
+  } else if (file.fieldname === "companyDocument") {
+    const allowed = [".pdf", ".jpg", ".jpeg", ".png"];
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF, JPG, JPEG, and PNG files are allowed for company documents"));
+    }
   } else {
-    cb(null, true);
+    cb(new Error("Unsupported upload field"));
   }
 };
 

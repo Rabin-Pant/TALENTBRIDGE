@@ -1,6 +1,7 @@
 import express from "express";
 import upload from "../middleware/upload.middleware.js";
 import authMiddleware from "../middleware/auth.middleware.js";
+import roleMiddleware from "../middleware/role.middleware.js";
 import {
   getMyJobs,
   createJob,
@@ -24,7 +25,7 @@ import {
 } from "../controllers/employer.controller.js";
 
 const router = express.Router();
-router.use(authMiddleware);
+router.use(authMiddleware, roleMiddleware("EMPLOYER"));
 
 // Job routes
 router.get("/jobs", getMyJobs);

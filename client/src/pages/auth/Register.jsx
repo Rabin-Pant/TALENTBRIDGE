@@ -141,6 +141,7 @@ const Register = () => {
         fullName: data.fullName,
         role:     selectedRole,
         phone:    data.phone,
+        website:  data.website,
         ...(selectedRole === "SEEKER" && {
           location:        data.location,
           currentTitle:    data.currentTitle,
@@ -213,6 +214,15 @@ const Register = () => {
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Honeypot: hidden from real users, bots tend to fill every field */}
+              <input
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+                {...register("website")}
+              />
               {/* STEP 0: Role Selection */}
               {step === 0 && (
                 <div className="space-y-5">

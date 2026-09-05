@@ -74,3 +74,80 @@ export const searchUsers = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ─── SEARCH POSTS (content, incl. hashtags) ───────────
+export const searchPosts = async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.length < 2) {
+      return res.json({ posts: [] });
+    }
+
+    const posts = await prisma.post.findMany({
+      where: { content: { contains: q, mode: "insensitive" } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      include: {
+        author: {
+          select: {
+            id: true,
+            fullName: true,
+            currentTitle: true,
+            companyName: true,
+            role: true,
+            profilePicture: true,
+          },
+        },
+        _count: { select: { likes: true, comments: true } },
+      },
+    });
+
+    res.json({ posts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── SEARCH JOBS ───────────────────────────────────────
+export const searchJobs = async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.length < 2) {
+      return res.json({ jobs: [] });
+    }
+
+    const jobs = await prisma.job.findMany({
+      where: {
+        status: "ACTIVE",
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { description: { contains: q, mode: "insensitive" } },
+          { company: { contains: q, mode: "insensitive" } },
+          { location: { contains: q, mode: "insensitive" } },
+          { industry: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      orderBy: { postedAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        title: true,
+        company: true,
+        location: true,
+        jobType: true,
+        experienceLevel: true,
+        salaryMin: true,
+        salaryMax: true,
+        postedAt: true,
+      },
+    });
+
+    res.json({ jobs });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

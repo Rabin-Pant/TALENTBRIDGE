@@ -8,7 +8,7 @@ import api from "../../api/axios";
 
 const Contact = () => {
   const [visible, setVisible] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
+  const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "", website: "" });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +39,7 @@ const Contact = () => {
       setLoading(true);
       await api.post("/auth/contact", formData);
       setSubmitted(true);
-      setFormData({ name: "", email: "", subject: "", message: "" });
+      setFormData({ name: "", email: "", subject: "", message: "", website: "" });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send message. Please try again.");
     } finally {
@@ -165,6 +165,17 @@ const Contact = () => {
                   )}
 
                   <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* Honeypot: hidden from real users, bots tend to fill every field */}
+                    <input
+                      type="text"
+                      name="website"
+                      value={formData.website}
+                      onChange={handleChange}
+                      tabIndex={-1}
+                      autoComplete="off"
+                      aria-hidden="true"
+                      style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+                    />
                     <div className="grid md:grid-cols-2 gap-5">
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">Your Name *</label>

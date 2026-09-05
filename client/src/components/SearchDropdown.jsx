@@ -1,12 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X, UserPlus, UserCheck, Clock, User } from "lucide-react";
+import { Search, X, UserPlus, UserCheck, Clock, User, Briefcase, MapPin } from "lucide-react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import { timeAgo } from "../utils/timeAgo";
+
+const formatJobType = (type) => type?.replace("_", " ");
+
+const TABS = [
+  { key: "people", label: "People" },
+  { key: "posts", label: "Posts" },
+  { key: "jobs", label: "Jobs" },
+];
 
 const SearchDropdown = ({ isOpen, onClose }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("people");
   const [results, setResults] = useState([]);
+  const [postResults, setPostResults] = useState([]);
+  const [jobResults, setJobResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState({});
   const { user } = useAuth();
@@ -112,30 +124,53 @@ const SearchDropdown = ({ isOpen, onClose }) => {
     };
   }, [isOpen, onClose]);
 
-  // Search users
+  // Search people, posts, and jobs together
   useEffect(() => {
-    const searchUsers = async () => {
+    const runSearch = async () => {
       if (!searchTerm.trim() || searchTerm.length < 2) {
         setResults([]);
+        setPostResults([]);
+        setJobResults([]);
+        setActiveTab("people");
         return;
       }
 
       setLoading(true);
-      try {
-        const res = await api.get(`/search/users?q=${encodeURIComponent(searchTerm)}`);
-        const filtered = res.data.users.filter(u => 
+      const query = encodeURIComponent(searchTerm);
+      const [usersRes, postsRes, jobsRes] = await Promise.allSettled([
+        api.get(`/search/users?q=${query}`),
+        api.get(`/search/posts?q=${query}`),
+        api.get(`/search/jobs?q=${query}`),
+      ]);
+
+      if (usersRes.status === "fulfilled") {
+        const filtered = usersRes.value.data.users.filter(u =>
           u.id !== user?.id && u.role !== "ADMIN"
         );
         setResults(filtered);
-      } catch (err) {
-        console.error("Search error:", err);
+      } else {
+        console.error("User search error:", usersRes.reason);
         setResults([]);
-      } finally {
-        setLoading(false);
       }
+
+      if (postsRes.status === "fulfilled") {
+        setPostResults(postsRes.value.data.posts);
+      } else {
+        console.error("Post search error:", postsRes.reason);
+        setPostResults([]);
+      }
+
+      if (jobsRes.status === "fulfilled") {
+        setJobResults(jobsRes.value.data.jobs);
+      } else {
+        console.error("Job search error:", jobsRes.reason);
+        setJobResults([]);
+      }
+
+      setLoading(false);
     };
 
-    const debounce = setTimeout(searchUsers, 500);
+    const debounce = setTimeout(runSearch, 500);
     return () => clearTimeout(debounce);
   }, [searchTerm, user?.id]);
 
@@ -216,6 +251,26 @@ const SearchDropdown = ({ isOpen, onClose }) => {
     }, 50);
   };
 
+  const handleViewPost = (postId) => {
+    isClickingInside.current = true;
+    onClose();
+    setTimeout(() => {
+      navigate(`/home?post=${postId}#comments`);
+      isClickingInside.current = false;
+    }, 50);
+  };
+
+  const handleViewJob = (jobId) => {
+    isClickingInside.current = true;
+    onClose();
+    setTimeout(() => {
+      if (user?.role === "SEEKER") navigate(`/seeker/jobs/${jobId}`);
+      else if (user?.role === "ADMIN") navigate(`/admin/jobs/${jobId}`);
+      else navigate(`/employer/jobs`);
+      isClickingInside.current = false;
+    }, 50);
+  };
+
   const getProfilePictureUrl = (profilePicture) => {
     return profilePicture ? `http://localhost:5000/uploads/${profilePicture}` : null;
   };
@@ -233,7 +288,7 @@ const SearchDropdown = ({ isOpen, onClose }) => {
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search for people by name, email, or company..."
+            placeholder="Search people, posts, jobs, or #hashtags..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -250,6 +305,28 @@ const SearchDropdown = ({ isOpen, onClose }) => {
         </div>
       </div>
 
+      {searchTerm.length >= 2 && (
+        <div className="flex gap-1 px-3 pt-2 border-b border-gray-100">
+          {TABS.map((tab) => {
+            const count = tab.key === "people" ? results.length : tab.key === "posts" ? postResults.length : jobResults.length;
+            return (
+              <button
+                key={tab.key}
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); isClickingInside.current = true; }}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${
+                  activeTab === tab.key
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-500 hover:text-gray-700 border-b-2 border-transparent"
+                }`}
+              >
+                {tab.label}{!loading && ` (${count})`}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="p-2">
         {loading ? (
           <div className="flex justify-center py-8">
@@ -260,6 +337,69 @@ const SearchDropdown = ({ isOpen, onClose }) => {
             <Search size={32} className="text-gray-300 mx-auto mb-2" />
             <p className="text-gray-400 text-sm">Type at least 2 characters to search</p>
           </div>
+        ) : activeTab === "posts" ? (
+          postResults.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-sm">No posts found</p>
+              <p className="text-gray-400 text-xs mt-1">Try a different keyword or hashtag</p>
+            </div>
+          ) : (
+            postResults.map((post) => {
+              const profilePicUrl = getProfilePictureUrl(post.author?.profilePicture);
+              return (
+                <div
+                  key={post.id}
+                  className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); isClickingInside.current = true; }}
+                  onClick={() => handleViewPost(post.id)}
+                >
+                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
+                    {profilePicUrl ? (
+                      <img src={profilePicUrl} alt={post.author?.fullName} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <User size={20} className="text-gray-400" strokeWidth={1.75} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900 text-sm truncate">{post.author?.fullName}</p>
+                      <span className="text-xs text-gray-400 flex-shrink-0">· {timeAgo(post.createdAt)}</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-0.5 line-clamp-2 break-words">{post.content}</p>
+                  </div>
+                </div>
+              );
+            })
+          )
+        ) : activeTab === "jobs" ? (
+          jobResults.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-sm">No jobs found</p>
+              <p className="text-gray-400 text-xs mt-1">Try a different keyword</p>
+            </div>
+          ) : (
+            jobResults.map((job) => (
+              <div
+                key={job.id}
+                className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); isClickingInside.current = true; }}
+                onClick={() => handleViewJob(job.id)}
+              >
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <Briefcase size={18} className="text-blue-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 text-sm truncate">{job.title}</p>
+                  <p className="text-xs text-gray-500 truncate">{job.company} · {formatJobType(job.jobType)}</p>
+                  {job.location && (
+                    <p className="text-xs text-gray-400 truncate flex items-center gap-0.5 mt-0.5"><MapPin size={10} />{job.location}</p>
+                  )}
+                </div>
+              </div>
+            ))
+          )
         ) : results.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500 text-sm">No users found</p>

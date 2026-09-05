@@ -128,7 +128,7 @@ router.post("/contact", contactLimiter, submitContact); // Applied the contact r
 // ─── PROTECTED ROUTES (Authentication required) ───
 router.put("/change-password", authMiddleware, changePassword);
 router.get("/me", authMiddleware, getMe);
-router.post("/upload-company-doc", upload.single("companyDocument"), (req, res) => {
+router.post("/upload-company-doc", authMiddleware, upload.single("companyDocument"), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
@@ -138,14 +138,6 @@ router.post("/upload-company-doc", upload.single("companyDocument"), (req, res) 
     console.error(err);
     res.status(500).json({ message: "Upload failed" });
   }
-});
-
-router.post("/clear-login-attempts", (req, res) => {
-  const email = req.body.email?.toLowerCase();
-  const ip = req.ip;
-  const key = `${ip}-${email}`;
-  failedAttempts.delete(key);
-  res.json({ message: "Login attempts cleared for this IP/email" });
 });
 
 export default router;

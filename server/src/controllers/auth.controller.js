@@ -36,6 +36,13 @@ export const register = async (req, res) => {
       companyPhone, companyDocument,
     } = req.body;
 
+    // --- BOT PROTECTION: honeypot field. Real users never fill this hidden
+    // input, so a non-empty value means a bot filled the form. Pretend
+    // success without creating anything, so scripted bots don't adapt.
+    if (req.body.website) {
+      return res.status(201).json({ message: "Registration successful! Please check your email to verify your account." });
+    }
+
     email = email ? email.toLowerCase().trim() : null;
     fullName = sanitizeInput(fullName);
     phone = sanitizeInput(phone);
@@ -426,6 +433,11 @@ export const resetPasswordDirect = async (req, res) => {
 export const submitContact = async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
+
+    // --- BOT PROTECTION: honeypot field, see register() for rationale ---
+    if (req.body.website) {
+      return res.status(200).json({ message: "Message sent successfully!" });
+    }
 
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ message: "All fields are required" });

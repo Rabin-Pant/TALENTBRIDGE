@@ -32,10 +32,20 @@ const __dirname = path.dirname(__filename);
 
 // ─── OPTIMIZED MIDDLEWARE ───────────────────────────────
 
-// Security headers (production only)
 if (process.env.NODE_ENV === "production") {
-  app.use(helmet());
+  // Trust the first proxy hop (Render/Heroku/Vercel etc.) so req.ip and
+  // req.secure reflect the real client instead of the proxy.
+  app.set("trust proxy", 1);
+
+  // Force HTTPS
+  app.use((req, res, next) => {
+    if (req.secure || req.headers["x-forwarded-proto"] === "https") return next();
+    return res.redirect(301, `https://${req.headers.host}${req.originalUrl}`);
+  });
 }
+
+// Security headers (CSP, X-Frame-Options, HSTS, etc.)
+app.use(helmet());
 
 // Compression for faster response
 app.use(compression());
