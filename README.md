@@ -46,7 +46,7 @@ TalentBridge is a full-stack job portal platform that connects job seekers with 
 - 👥 **Professional network** with connection requests
 - 🔔 **Real-time notifications** via Socket.io
 - 📄 **Resume and profile picture** upload
-- 🔍 **Advanced search and filtering**
+- 🔍 **Unified search** across people, posts (including hashtags), and jobs
 - 📝 **Social feed** with posts, likes, and comments
 - ✅ **Employer verification** with document upload
 
@@ -92,15 +92,15 @@ TalentBridge is a full-stack job portal platform that connects job seekers with 
 ### Frontend
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| React | 18.x | UI Framework |
+| React | 19.x | UI Framework |
 | Vite | 8.x | Build Tool |
 | Tailwind CSS | 3.x | Styling |
-| React Router DOM | 6.x | Client-side Routing |
+| React Router DOM | 7.x | Client-side Routing |
 | React Hook Form | 7.x | Form Management |
 | Lucide React | latest | Icons |
 | Socket.io Client | 4.x | Real-time Communication |
 | Axios | 1.x | HTTP API Calls |
-| date-fns | 3.x | Date Formatting |
+| date-fns | 4.x | Date Formatting |
 
 ### Backend
 | Technology | Version | Purpose |
@@ -113,7 +113,9 @@ TalentBridge is a full-stack job portal platform that connects job seekers with 
 | jsonwebtoken | 9.x | Authentication |
 | bcryptjs | 3.x | Password Hashing |
 | multer | 2.x | File Upload |
-| express-rate-limit | 7.x | Rate Limiting |
+| express-rate-limit | 8.x | Rate Limiting |
+| Helmet | 8.x | Security Headers |
+| DOMPurify | 3.x | XSS Sanitization |
 
 ---
 
@@ -301,11 +303,16 @@ npm start or npm run dev
 - JWT authentication with 7-day expiration
 - Password hashing with bcrypt (12 rounds)
 - Rate limiting on login (5 attempts / 15 min) and registration (3 / hour)
-- Input sanitization to prevent XSS
-- SQL injection protection via Prisma ORM
+- Role-based access control enforced on every protected route (seeker/employer/admin APIs are each locked to their own role)
+- Input sanitization (DOMPurify) on posts, comments, and messages to prevent stored XSS
+- SQL injection protection via Prisma ORM (no raw queries)
+- File upload validation: type allowlists and size limits on every upload endpoint
+- Honeypot bot protection on the registration and contact forms
+- Security headers (Helmet: CSP, HSTS, X-Frame-Options, etc.) applied to all responses
+- HTTPS enforced and `trust proxy` set in production
 - CORS restricted to frontend origin
-- Role-based access control on all protected routes
 - Employer account requires admin verification before access
+- Dependency vulnerability scanning via Dependabot (`.github/dependabot.yml`)
 
 ---
 
