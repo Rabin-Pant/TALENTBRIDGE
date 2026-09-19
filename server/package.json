@@ -29,7 +29,7 @@
     "jsdom": "^29.1.1",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.11.0",
-    "multer": "^2.1.1",
+    "multer": "^2.4.0",
     "pg": "^8.21.0",
     "prisma": "^5.22.0",
     "socket.io": "^4.8.3"
